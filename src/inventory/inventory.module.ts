@@ -8,6 +8,11 @@ import { Category } from './entities/category.entity';
 import { Unit } from './entities/unit.entity';
 import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
+import { ProductsController } from './products/products.controller';
+import { ProductsService } from './products/products.service';
+import { MovementsController } from './movements/movements.controller';
+import { MovementsService } from './movements/movements.service';
+import { StockEntry } from './entities/stock-entry.entity';
 
 @Module({
   imports: [
@@ -17,9 +22,10 @@ import { MovementType } from './entities/movement-type.entity';
       Unit,
       Movement,
       MovementType,
+      StockEntry
     ]),
   ],
-  controllers: [InventoryController],
-  providers: [InventoryService, AwsMqttService], // 👈 Registra el servicio MQTT aquí
+  controllers: [InventoryController, ProductsController, MovementsController],
+  providers: [InventoryService, AwsMqttService, ProductsService, MovementsService], // 👈 Registra el servicio MQTT aquí
 })
 export class InventoryModule {}

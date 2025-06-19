@@ -27,17 +27,21 @@ export class Product {
   @Column('decimal', { precision: 10, scale: 2 })
   max_stock: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  unit_price: number;
-
   @Column()
   brand: string;
 
   @Column('text')
   description: string;
 
+  @Column({ default: false })
+  has_sensor: boolean;
+
+
   @Column({ default: true })
   is_active: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  image_url?: string;
 
   @CreateDateColumn()
   created_at: Date;
