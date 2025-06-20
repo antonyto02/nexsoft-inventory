@@ -30,4 +30,12 @@ describe('ProductsController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('getOne should call service', async () => {
+    const svc = controller['productsService'];
+    svc.findById = jest.fn().mockResolvedValue('result');
+    const res = await controller.getOne('1');
+    expect(svc.findById).toHaveBeenCalledWith('1');
+    expect(res).toBe('result');
+  });
 });

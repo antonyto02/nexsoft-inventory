@@ -98,4 +98,44 @@ describe('ProductsService', () => {
       ],
     });
   });
+
+  it('findById should return mapped product', async () => {
+    const prod = {
+      id: 1,
+      name: 'Leche entera',
+      image_url: 'url',
+      description: 'desc',
+      brand: 'Lala',
+      stock: 20,
+      min_stock: 5,
+      max_stock: 50,
+      updated_at: new Date('2025-06-17T14:23:00Z'),
+      category: { name: 'Lácteos' },
+      sensor_type: 'rfid',
+    };
+    repoMock.findOne = jest.fn().mockResolvedValue(prod);
+
+    const result = await service.findById('1');
+    expect(result).toEqual({
+      message: 'Producto obtenido correctamente',
+      product: {
+        id: '1',
+        name: 'Leche entera',
+        image_url: 'url',
+        description: 'desc',
+        category: 'Lácteos',
+        brand: 'Lala',
+        stock_actual: 20,
+        stock_minimum: 5,
+        stock_maximum: 50,
+        last_updated: '2025-06-17T14:23:00',
+        sensor_type: 'rfid',
+      },
+    });
+  });
+
+  it('findById should throw if product missing', async () => {
+    repoMock.findOne = jest.fn().mockResolvedValue(null);
+    await expect(service.findById('2')).rejects.toThrow();
+  });
 });
