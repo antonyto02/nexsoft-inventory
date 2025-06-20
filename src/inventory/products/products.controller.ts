@@ -9,12 +9,17 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
+import { MovementsService } from '../movements/movements.service';
+import { RegisterMovementDto } from '../movements/dto/register-movement.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('inventory/products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly movementsService: MovementsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateProductDto) {
@@ -52,6 +57,14 @@ export class ProductsController {
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.productsService.findById(id);
+  }
+
+  @Post(':id/movements')
+  registerMovement(
+    @Param('id') id: string,
+    @Body() dto: RegisterMovementDto,
+  ) {
+    return this.movementsService.registerManualMovement(id, dto);
   }
 
   @Patch(':id')

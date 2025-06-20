@@ -6,6 +6,7 @@ import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
 import { StockEntry } from '../entities/stock-entry.entity';
+import { MovementsService } from '../movements/movements.service';
 
 const repoMock = {};
 
@@ -17,6 +18,7 @@ describe('ProductsController', () => {
       controllers: [ProductsController],
       providers: [
         ProductsService,
+        { provide: MovementsService, useValue: {} },
         { provide: getRepositoryToken(Product), useValue: repoMock },
         { provide: getRepositoryToken(Category), useValue: repoMock },
         { provide: getRepositoryToken(Unit), useValue: repoMock },
@@ -45,5 +47,16 @@ describe('ProductsController', () => {
     const res = await controller.remove('2');
     expect(svc.remove).toHaveBeenCalledWith('2');
     expect(res).toBe('done');
+  });
+
+  it('registerMovement should call service', async () => {
+    const svc = controller['movementsService'];
+    svc.registerManualMovement = jest.fn().mockResolvedValue('ok');
+    const res = await controller.registerMovement('3', { type: 1, quantity: 4 });
+    expect(svc.registerManualMovement).toHaveBeenCalledWith('3', {
+      type: 1,
+      quantity: 4,
+    });
+    expect(res).toBe('ok');
   });
 });
