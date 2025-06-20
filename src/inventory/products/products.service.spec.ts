@@ -138,4 +138,37 @@ describe('ProductsService', () => {
     repoMock.findOne = jest.fn().mockResolvedValue(null);
     await expect(service.findById('2')).rejects.toThrow();
   });
+
+  it('update should modify allowed fields', async () => {
+    const product = {
+      id: 3,
+      name: 'Old',
+      brand: 'Brand',
+      description: 'desc',
+      min_stock: 1,
+      max_stock: 2,
+      image_url: 'old.png',
+      category: { id: 1, name: 'Cat' },
+    };
+    repoMock.findOne = jest.fn().mockResolvedValue(product);
+    repoMock.save = jest.fn().mockResolvedValue(product);
+
+    const cat = { id: 2, name: 'New' };
+    const catRepo = service['categoryRepository'];
+    catRepo.findOne = jest.fn().mockResolvedValue(cat);
+
+    await service.update('3', {
+      name: 'NewName',
+      category: 2,
+    });
+
+    expect(repoMock.save).toHaveBeenCalled();
+    expect(product.name).toBe('NewName');
+    expect(product.category).toBe(cat);
+  });
+
+  it('update should throw if product not found', async () => {
+    repoMock.findOne = jest.fn().mockResolvedValue(null);
+    await expect(service.update('5', {} as any)).rejects.toThrow();
+  });
 });
