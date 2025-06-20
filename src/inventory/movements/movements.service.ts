@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Product } from '../entities/product.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
@@ -46,14 +46,16 @@ export class MovementsService {
       );
     }
 
-    if (!dto || typeof dto.quantity !== 'number' || typeof dto.type !== 'number') {
+    if (
+      !dto ||
+      typeof dto.quantity !== 'number' ||
+      typeof dto.type !== 'number'
+    ) {
       throw new BadRequestException('Datos de movimiento inválidos');
     }
 
     if (dto.quantity <= 0) {
-      throw new BadRequestException(
-        'La cantidad debe ser mayor que cero.',
-      );
+      throw new BadRequestException('La cantidad debe ser mayor que cero.');
     }
 
     const hasDecimals = dto.quantity % 1 !== 0;
@@ -102,6 +104,48 @@ export class MovementsService {
     return {
       message: 'Movimiento registrado correctamente',
       new_stock: finalQuantity,
+    };
+  }
+
+  async findByProduct(productId: string) {
+    const id = parseInt(productId, 10);
+    if (isNaN(id)) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    const product = await this.productRepository.findOne({ where: { id } });
+
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    const movements = await this.movementRepository.find({
+      where: { product: { id }, deleted_at: IsNull() },
+      order: { movement_date: 'DESC' },
+      relations: ['type'],
+    });
+
+    const formatted = movements.map((m) => {
+      const item: any = {
+        date: m.movement_date.toISOString().split('T')[0],
+        time: m.movement_date.toISOString().split('T')[1].slice(0, 5),
+        type: m.type.name,
+        stock_before: Number(m.previous_quantity),
+        quantity:
+          m.type.id === 2 || m.type.id === 4
+            ? -Number(m.quantity)
+            : Number(m.quantity),
+        stock_after: Number(m.final_quantity),
+      };
+      if (m.comment) {
+        item.comment = m.comment;
+      }
+      return item;
+    });
+
+    return {
+      message: 'Movimientos obtenidos correctamente',
+      movements: formatted,
     };
   }
 }

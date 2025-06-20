@@ -69,6 +69,11 @@ export class ProductsController {
     return this.movementsService.createManual(id, dto);
   }
 
+  @Get(':id/movements')
+  getMovements(@Param('id') id: string) {
+    return this.movementsService.findByProduct(id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
+import { MovementsService } from '../movements/movements.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
@@ -17,6 +18,7 @@ describe('ProductsController', () => {
       controllers: [ProductsController],
       providers: [
         ProductsService,
+        MovementsService,
         { provide: getRepositoryToken(Product), useValue: repoMock },
         { provide: getRepositoryToken(Category), useValue: repoMock },
         { provide: getRepositoryToken(Unit), useValue: repoMock },
@@ -37,6 +39,14 @@ describe('ProductsController', () => {
     const res = await controller.getOne('1');
     expect(svc.findById).toHaveBeenCalledWith('1');
     expect(res).toBe('result');
+  });
+
+  it('getMovements should call service', async () => {
+    const svc = controller['movementsService'];
+    svc.findByProduct = jest.fn().mockResolvedValue('data');
+    const res = await controller.getMovements('5');
+    expect(svc.findByProduct).toHaveBeenCalledWith('5');
+    expect(res).toBe('data');
   });
 
   it('remove should call service', async () => {
