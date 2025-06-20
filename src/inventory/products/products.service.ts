@@ -6,6 +6,7 @@ import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
 import { StockEntry } from '../entities/stock-entry.entity';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -239,5 +240,51 @@ export class ProductsService {
         sensor_type: product.sensor_type,
       },
     };
+  }
+
+  async update(id: string, dto: UpdateProductDto) {
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    const product = await this.productRepository.findOne({
+      where: { id: numericId },
+      relations: ['category'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    if (dto.name !== undefined) product.name = dto.name;
+    if (dto.brand !== undefined) product.brand = dto.brand;
+    if (dto.description !== undefined) product.description = dto.description;
+    if (dto.stock_minimum !== undefined)
+      product.min_stock = dto.stock_minimum;
+    if (dto.stock_maximum !== undefined)
+      product.max_stock = dto.stock_maximum;
+    if (dto.image_url !== undefined) product.image_url = dto.image_url;
+
+    if (dto.category !== undefined) {
+      let category: Category | null = null;
+      if (typeof dto.category === 'number') {
+        category = await this.categoryRepository.findOne({
+          where: { id: dto.category },
+        });
+      } else {
+        category = await this.categoryRepository.findOne({
+          where: { name: dto.category },
+        });
+      }
+      if (!category) {
+        throw new BadRequestException('Category not found');
+      }
+      product.category = category;
+    }
+
+    await this.productRepository.save(product);
+
+    return { message: 'Producto actualizado correctamente' };
   }
 }
