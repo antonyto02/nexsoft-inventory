@@ -60,4 +60,42 @@ describe('ProductsService', () => {
       products: [],
     });
   });
+
+  it('should throw error when name is missing', async () => {
+    await expect(service.searchByName(undefined)).rejects.toThrow();
+  });
+
+  it('searchByName should return mapped products', async () => {
+    const qb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          name: 'Agua natural 1L',
+          image_url: 'url',
+          stock: 30,
+          category: { name: 'Bebidas' },
+          sensor_type: 'rfid',
+        },
+      ]),
+    };
+
+    repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
+
+    const result = await service.searchByName('agua');
+    expect(result).toEqual({
+      message: 'Búsqueda completada',
+      results: [
+        {
+          name: 'Agua natural 1L',
+          image_url: 'url',
+          stock_actual: 30,
+          category: 'Bebidas',
+          sensor_type: 'rfid',
+        },
+      ],
+    });
+  });
 });
