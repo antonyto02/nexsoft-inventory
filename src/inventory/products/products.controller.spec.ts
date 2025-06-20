@@ -38,4 +38,12 @@ describe('ProductsController', () => {
     expect(svc.findById).toHaveBeenCalledWith('1');
     expect(res).toBe('result');
   });
+
+  it('remove should call service', async () => {
+    const svc = controller['productsService'];
+    svc.remove = jest.fn().mockResolvedValue('done');
+    const res = await controller.remove('2');
+    expect(svc.remove).toHaveBeenCalledWith('2');
+    expect(res).toBe('done');
+  });
 });
