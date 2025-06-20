@@ -33,4 +33,9 @@ export class ProductsController {
     const categoryId = category ? parseInt(category, 10) : undefined;
     return this.productsService.findGeneral(categoryId, pageNum, limitNum);
   }
+
+  @Get('search')
+  search(@Query('name') name?: string) {
+    return this.productsService.searchByName(name);
+  }
 }

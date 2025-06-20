@@ -180,4 +180,31 @@ export class ProductsService {
       products,
     };
   }
+
+  async searchByName(name?: string) {
+    if (!name) {
+      throw new BadRequestException('El nombre es requerido');
+    }
+
+    const result = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('LOWER(product.name) LIKE LOWER(:name)', { name: `%${name}%` })
+      .andWhere('product.is_active = true')
+      .orderBy('product.name', 'ASC')
+      .getMany();
+
+    const products = result.map((p) => ({
+      name: p.name,
+      image_url: p.image_url,
+      stock_actual: Number(p.stock),
+      category: p.category?.name,
+      sensor_type: p.sensor_type,
+    }));
+
+    return {
+      message: 'Búsqueda completada',
+      results: products,
+    };
+  }
 }
