@@ -148,4 +148,36 @@ export class ProductsService {
       products,
     };
   }
+
+  async findGeneral(categoryId?: number, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    let qb = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.is_active = true');
+
+    if (categoryId) {
+      qb = qb.andWhere('category.id = :categoryId', { categoryId });
+    }
+
+    const result = await qb
+      .orderBy('product.name', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
+
+    const products = result.map((p) => ({
+      name: p.name,
+      image_url: p.image_url,
+      stock_actual: Number(p.stock),
+      category: p.category?.name,
+      sensor_type: p.sensor_type,
+    }));
+
+    return {
+      message: 'Productos obtenidos correctamente',
+      products,
+    };
+  }
 }

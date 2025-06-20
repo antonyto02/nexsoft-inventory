@@ -36,4 +36,28 @@ describe('ProductsService', () => {
   it('should throw error when status is invalid', async () => {
     await expect(service.findByStatus('invalid', 1, 10)).rejects.toThrow();
   });
+
+  it('findGeneral should be defined', async () => {
+    repoMock.createQueryBuilder = jest.fn().mockReturnValue({
+      leftJoinAndSelect: () => ({
+        where: () => ({
+          andWhere: () => ({
+            orderBy: () => ({
+              skip: () => ({
+                take: () => ({
+                  getMany: async () => [],
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    });
+
+    const result = await service.findGeneral(undefined, 1, 10);
+    expect(result).toEqual({
+      message: 'Productos obtenidos correctamente',
+      products: [],
+    });
+  });
 });
