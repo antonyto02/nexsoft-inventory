@@ -5,6 +5,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
+import { StockEntry } from '../entities/stock-entry.entity';
 
 const repoMock = {};
 
@@ -19,6 +20,7 @@ describe('ProductsController', () => {
         { provide: getRepositoryToken(Product), useValue: repoMock },
         { provide: getRepositoryToken(Category), useValue: repoMock },
         { provide: getRepositoryToken(Unit), useValue: repoMock },
+        { provide: getRepositoryToken(StockEntry), useValue: repoMock },
       ],
     }).compile();
 
