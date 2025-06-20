@@ -21,4 +21,16 @@ export class ProductsController {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     return this.productsService.findByStatus(status, pageNum, limitNum);
   }
+
+  @Get('general')
+  getGeneral(
+    @Query('category') category?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const categoryId = category ? parseInt(category, 10) : undefined;
+    return this.productsService.findGeneral(categoryId, pageNum, limitNum);
+  }
 }
