@@ -287,4 +287,29 @@ export class ProductsService {
 
     return { message: 'Producto actualizado correctamente' };
   }
+
+  async remove(id: string) {
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    const product = await this.productRepository.findOne({
+      where: { id: numericId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    if (!product.is_active) {
+      return { message: 'Producto eliminado correctamente' };
+    }
+
+    product.is_active = false;
+    product.deleted_at = new Date();
+    await this.productRepository.save(product);
+
+    return { message: 'Producto eliminado correctamente' };
+  }
 }

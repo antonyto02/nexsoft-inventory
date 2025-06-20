@@ -171,4 +171,22 @@ describe('ProductsService', () => {
     repoMock.findOne = jest.fn().mockResolvedValue(null);
     await expect(service.update('5', {} as any)).rejects.toThrow();
   });
+
+  it('remove should deactivate product', async () => {
+    const product = { id: 4, is_active: true } as any;
+    repoMock.findOne = jest.fn().mockResolvedValue(product);
+    repoMock.save = jest.fn().mockResolvedValue(product);
+
+    const result = await service.remove('4');
+
+    expect(repoMock.save).toHaveBeenCalledWith(product);
+    expect(product.is_active).toBe(false);
+    expect(product.deleted_at).toBeInstanceOf(Date);
+    expect(result).toEqual({ message: 'Producto eliminado correctamente' });
+  });
+
+  it('remove should throw if product not found', async () => {
+    repoMock.findOne = jest.fn().mockResolvedValue(null);
+    await expect(service.remove('10')).rejects.toThrow();
+  });
 });
