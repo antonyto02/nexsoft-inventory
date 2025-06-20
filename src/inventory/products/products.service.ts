@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
+import { StockEntry } from '../entities/stock-entry.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 
 @Injectable()
@@ -15,6 +16,8 @@ export class ProductsService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Unit)
     private readonly unitRepository: Repository<Unit>,
+    @InjectRepository(StockEntry)
+    private readonly stockEntryRepository: Repository<StockEntry>,
   ) {}
 
   async create(dto: CreateProductDto) {
@@ -53,6 +56,96 @@ export class ProductsService {
     return {
       message: 'Producto creado correctamente',
       product_id: String(saved.id),
+    };
+  }
+
+  async findByStatus(status: string, page = 1, limit = 10) {
+    if (status === 'all') {
+      throw new BadRequestException(
+        "El estado 'all' no es válido para este endpoint.",
+      );
+    }
+
+    const validStatuses = [
+      'out_of_stock',
+      'low_stock',
+      'expiring',
+      'near_minimum',
+      'overstock',
+    ];
+
+    if (!status || !validStatuses.includes(status)) {
+      throw new BadRequestException('El estado es inválido');
+    }
+
+    const skip = (page - 1) * limit;
+
+    if (status === 'expiring') {
+      const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const entries = await this.stockEntryRepository
+        .createQueryBuilder('entry')
+        .leftJoinAndSelect('entry.product', 'product')
+        .leftJoinAndSelect('product.category', 'category')
+        .where('entry.expiration_date IS NOT NULL')
+        .andWhere('entry.expiration_date <= :limitDate', {
+          limitDate: sevenDays,
+        })
+        .andWhere('entry.deleted_at IS NULL')
+        .orderBy('entry.expiration_date', 'ASC')
+        .skip(skip)
+        .take(limit)
+        .getMany();
+
+      const products = entries.map((e) => ({
+        name: e.product.name,
+        image_url: e.product.image_url,
+        stock_actual: Number(e.product.stock),
+        category: e.product.category?.name,
+        sensor_type: e.product.sensor_type,
+      }));
+
+      return {
+        message: 'Productos obtenidos correctamente',
+        products,
+      };
+    }
+
+    let qb = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category');
+
+    switch (status) {
+      case 'out_of_stock':
+        qb = qb.where('product.stock = 0');
+        break;
+      case 'low_stock':
+        qb = qb.where('product.stock > 0').andWhere(
+          'product.stock < product.min_stock',
+        );
+        break;
+      case 'near_minimum':
+        qb = qb
+          .where('product.stock >= product.min_stock')
+          .andWhere('product.stock <= product.min_stock + 1');
+        break;
+      case 'overstock':
+        qb = qb.where('product.stock > product.max_stock');
+        break;
+    }
+
+    const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
+
+    const products = result.map((p) => ({
+      name: p.name,
+      image_url: p.image_url,
+      stock_actual: Number(p.stock),
+      category: p.category?.name,
+      sensor_type: p.sensor_type,
+    }));
+
+    return {
+      message: 'Productos obtenidos correctamente',
+      products,
     };
   }
 }
