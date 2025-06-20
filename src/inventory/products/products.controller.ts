@@ -11,10 +11,15 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { MovementsService } from '../movements/movements.service';
+import { CreateMovementDto } from '../movements/dto/create-movement.dto';
 
 @Controller('inventory/products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly movementsService: MovementsService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateProductDto) {
@@ -57,6 +62,11 @@ export class ProductsController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
+  }
+
+  @Post(':id/movements')
+  createMovement(@Param('id') id: string, @Body() dto: CreateMovementDto) {
+    return this.movementsService.createManual(id, dto);
   }
 
   @Delete(':id')
