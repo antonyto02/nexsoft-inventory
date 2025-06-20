@@ -33,8 +33,8 @@ export class Product {
   @Column('text')
   description: string;
 
-  @Column({ default: false })
-  has_sensor: boolean;
+  @Column({ type: 'enum', enum: ['manual', 'rfid', 'weight', 'camera'], default: 'manual' })
+  sensor_type: 'manual' | 'rfid' | 'weight' | 'camera';
 
 
   @Column({ default: true })

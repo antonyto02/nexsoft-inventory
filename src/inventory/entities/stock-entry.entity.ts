@@ -4,7 +4,6 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
-  UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
 import { Product } from './product.entity';
@@ -17,17 +16,14 @@ export class StockEntry {
   @ManyToOne(() => Product, (product) => product.id, { eager: true })
   product: Product;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  quantity: number;
-
   @Column({ type: 'date', nullable: true })
   expiration_date?: Date;
 
+  @Column({ type: 'text', unique: true })
+  rfid_tag: string;
+
   @CreateDateColumn()
   created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
 
   @DeleteDateColumn()
   deleted_at?: Date;
