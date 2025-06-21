@@ -24,4 +24,11 @@ export class InventoryController {
       message: entryMode ? 'Modo entrada activado' : 'Modo entrada desactivado',
     };
   }
+
+  @Get('rfid-mode')
+  getRfidMode() {
+    return {
+      entry_mode: this.rfidService.getEntryMode(),
+    };
+  }
 }
