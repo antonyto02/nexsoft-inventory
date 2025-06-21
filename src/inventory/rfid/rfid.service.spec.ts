@@ -15,4 +15,10 @@ describe('RfidService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  it('should toggle entry mode', () => {
+    expect(service.getEntryMode()).toBe(false);
+    service.setEntryMode(true);
+    expect(service.getEntryMode()).toBe(true);
+  });
 });
