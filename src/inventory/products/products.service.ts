@@ -98,6 +98,7 @@ export class ProductsService {
         .getMany();
 
       const products = entries.map((e) => ({
+        id: String(e.product.id),
         name: e.product.name,
         image_url: e.product.image_url,
         stock_actual: Number(e.product.stock),
@@ -137,6 +138,7 @@ export class ProductsService {
     const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
 
     const products = result.map((p) => ({
+      id: String(p.id),
       name: p.name,
       image_url: p.image_url,
       stock_actual: Number(p.stock),
@@ -169,6 +171,7 @@ export class ProductsService {
       .getMany();
 
     const products = result.map((p) => ({
+      id: String(p.id),
       name: p.name,
       image_url: p.image_url,
       stock_actual: Number(p.stock),
