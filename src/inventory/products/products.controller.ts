@@ -15,6 +15,9 @@ import { MovementsService } from '../movements/movements.service';
 import { CreateMovementDto } from '../movements/dto/create-movement.dto';
 import { RfidService } from '../rfid/rfid.service';
 import { RfidEntryDto } from './dto/rfid-entry.dto';
+import { AwsS3Service } from './s3.service';
+import { BadRequestException } from '@nestjs/common';
+
 
 @Controller('inventory/products')
 export class ProductsController {
@@ -22,6 +25,7 @@ export class ProductsController {
     private readonly productsService: ProductsService,
     private readonly movementsService: MovementsService,
     private readonly rfidService: RfidService,
+    private readonly s3Service: AwsS3Service,
   ) {}
 
   @Post()
@@ -56,6 +60,15 @@ export class ProductsController {
   search(@Query('name') name?: string) {
     return this.productsService.searchByName(name);
   }
+  @Get('upload-url')
+  getUploadUrl(
+    @Query('type') type: string,
+    @Query('ext') ext: string,
+  ) {
+    return this.s3Service.generateSignedUrl(type, ext);
+  }
+
+
 
   @Get(':id')
   getOne(@Param('id') id: string) {

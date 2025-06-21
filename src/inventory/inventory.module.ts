@@ -14,6 +14,8 @@ import { MovementsController } from './movements/movements.controller';
 import { MovementsService } from './movements/movements.service';
 import { StockEntry } from './entities/stock-entry.entity';
 import { RfidModule } from './rfid/rfid.module';
+import { AwsS3Service } from './products/s3.service';
+
 
 @Module({
   imports: [
@@ -28,6 +30,6 @@ import { RfidModule } from './rfid/rfid.module';
     RfidModule,
   ],
   controllers: [InventoryController, ProductsController, MovementsController],
-  providers: [InventoryService, AwsMqttService, ProductsService, MovementsService], // 👈 Registra el servicio MQTT aquí
+  providers: [InventoryService, AwsMqttService, ProductsService, MovementsService, AwsS3Service], // 👈 Registra el servicio MQTT aquí
 })
 export class InventoryModule {}
