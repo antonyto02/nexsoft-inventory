@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config(); // Carga variables de entorno en local
+dotenv.config(); // Solo útil en local
 
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
@@ -37,28 +37,37 @@ export class AwsMqttService implements OnModuleInit {
       key,
       cert,
       ca,
-      clientId: 'nexsoft-inventory-backend',
+      clean: true,
+      clientId: `nexsoft-inventory-backend-${Math.random().toString(16).slice(2)}`, // único para evitar reconexión
     });
 
     this.client.on('connect', () => {
-      console.log('[MQTT] Conectado a AWS IoT ✅');
+      console.log('[MQTT] ✅ Conectado a AWS IoT');
       this.client.subscribe('nexsoft/inventory/#', (err) => {
         if (err) {
-          console.error('[MQTT] Error al suscribirse:', err);
+          console.error('[MQTT] ❌ Error al suscribirse:', err);
         } else {
-          console.log('[MQTT] Suscrito a nexsoft/inventory/#');
+          console.log('[MQTT] 📡 Suscrito a nexsoft/inventory/#');
         }
       });
     });
 
-    this.client.on('message', async (topic, message) => {
-      const data = message.toString();
-      console.log(`[MQTT] Mensaje recibido en ${topic}:`, data);
-      // 👉 Aquí Codex agregará la lógica de guardado en base de datos
+    this.client.on('reconnect', () => {
+      console.log('[MQTT] 🔁 Intentando reconectar...');
+    });
+
+    this.client.on('close', () => {
+      console.warn('[MQTT] 🔌 Conexión cerrada por AWS');
     });
 
     this.client.on('error', (error) => {
-      console.error('[MQTT] Error:', error);
+      console.error('[MQTT] 🚨 Error:', error);
+    });
+
+    this.client.on('message', async (topic, message) => {
+      const data = message.toString();
+      console.log(`[MQTT] 📩 Mensaje recibido en "${topic}": "${data}"`);
+      // Aquí puedes agregar tu lógica de guardado en BD o lo que necesites
     });
   }
 }
