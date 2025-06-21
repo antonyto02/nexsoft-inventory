@@ -87,6 +87,7 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_minimum: Number(p.min_stock),
+      image_url: p.image_url,
       sensor_type: p.sensor_type,
     }));
 
@@ -111,6 +112,7 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_minimum: Number(p.min_stock),
+      image_url: p.image_url,
       sensor_type: p.sensor_type,
     }));
 
@@ -119,6 +121,7 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_maximum: Number(p.max_stock),
+      image_url: p.image_url,
       sensor_type: p.sensor_type,
     }));
 
