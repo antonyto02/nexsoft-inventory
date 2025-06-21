@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario</title>
+<style>
+body { font-family: Arial, sans-serif; }
+#modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+.modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 400px; }
+.close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Inventario</h1>
+<button id="openModal">Registrar producto</button>
+
+<div id="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Registrar nuevo producto</h2>
+    <form id="registerForm">
+      <div>
+        <label>Nombre
+          <input type="text" name="name" required>
+        </label>
+      </div>
+      <div>
+        <label>Marca
+          <input type="text" name="brand" required>
+        </label>
+      </div>
+      <div>
+        <label>Descripción
+          <textarea name="description" rows="3"></textarea>
+        </label>
+      </div>
+      <div>
+        <label>Categoría
+          <select name="category" id="category"></select>
+        </label>
+      </div>
+      <div>
+        <label>Unidad
+          <select name="unit_type" id="unitType"></select>
+        </label>
+      </div>
+      <div>
+        <label>Sensor RFID
+          <input type="checkbox" id="sensorToggle">
+        </label>
+      </div>
+      <div>
+        <label>Imagen
+          <input type="file" name="image" accept="image/png">
+        </label>
+      </div>
+      <button type="submit">Guardar</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const categories = [
+  { id: 1, name: 'Alimentos' },
+  { id: 2, name: 'Bebidas' },
+  { id: 3, name: 'Insumos' },
+  { id: 4, name: 'Productos de limpieza' }
+];
+const unitTypes = [
+  { id: 1, name: 'Kilos' },
+  { id: 2, name: 'Piezas' },
+  { id: 3, name: 'Cajas' },
+  { id: 4, name: 'Botellas' },
+  { id: 5, name: 'Litros' },
+  { id: 6, name: 'Paquetes' },
+  { id: 7, name: 'Latas' }
+];
+
+function populateSelect(select, data) {
+  data.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item.id;
+    opt.textContent = item.name;
+    select.appendChild(opt);
+  });
+}
+
+const categorySelect = document.getElementById('category');
+const unitTypeSelect = document.getElementById('unitType');
+populateSelect(categorySelect, categories);
+populateSelect(unitTypeSelect, unitTypes);
+
+const modal = document.getElementById('modal');
+const openBtn = document.getElementById('openModal');
+const closeBtn = document.querySelector('.close');
+openBtn.onclick = () => { modal.style.display = 'block'; };
+closeBtn.onclick = () => { modal.style.display = 'none'; };
+window.onclick = (event) => {
+  if (event.target === modal) modal.style.display = 'none';
+};
+
+const form = document.getElementById('registerForm');
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const formData = new FormData(form);
+  const data = {
+    name: formData.get('name'),
+    brand: formData.get('brand'),
+    description: formData.get('description'),
+    category: formData.get('category'),
+    unit_type: formData.get('unit_type'),
+    sensor_type: document.getElementById('sensorToggle').checked ? 'rfid' : 'manual',
+    image: formData.get('image')
+  };
+  console.log('Producto registrado (mock):', data);
+  modal.style.display = 'none';
+  form.reset();
+});
+</script>
+</body>
+</html>
