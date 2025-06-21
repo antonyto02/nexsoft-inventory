@@ -1,7 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as mqtt from 'mqtt';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
@@ -12,17 +10,18 @@ export class AwsMqttService implements OnModuleInit {
   }
 
   private connectToMqttBroker() {
-    const certsPath = path.resolve(__dirname, '../../certs');
-
-
+    // 🔐 Leer certificados desde variables de entorno
+    const key = Buffer.from(process.env.KEY_MONITORING!, 'utf-8');
+    const cert = Buffer.from(process.env.CERT_MONITORING!, 'utf-8');
+    const ca = Buffer.from(process.env.CA_CERT!, 'utf-8');
 
     this.client = mqtt.connect({
       host: 'a32p2sd11gkckn-ats.iot.us-east-2.amazonaws.com',
       port: 8883,
       protocol: 'mqtts',
-      key: fs.readFileSync(`${certsPath}/monitoring-private.pem.key`),
-      cert: fs.readFileSync(`${certsPath}/monitoring-cert.pem.crt`),
-      ca: fs.readFileSync(`${certsPath}/AmazonRootCA1.pem`),
+      key,
+      cert,
+      ca,
       clientId: 'nexsoft-inventory-backend',
     });
 
@@ -40,7 +39,6 @@ export class AwsMqttService implements OnModuleInit {
     this.client.on('message', async (topic, message) => {
       const data = message.toString();
       console.log(`[MQTT] Mensaje recibido en ${topic}:`, data);
-
       // 👉 Aquí Codex agregará la lógica de guardado en base de datos
     });
 
