@@ -1,5 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as mqtt from 'mqtt';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+dotenv.config(); // Carga variables de entorno en local
 
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
@@ -10,10 +15,20 @@ export class AwsMqttService implements OnModuleInit {
   }
 
   private connectToMqttBroker() {
-    // 🔐 Leer certificados desde variables de entorno
-    const key = Buffer.from(process.env.KEY_MONITORING!, 'utf-8');
-    const cert = Buffer.from(process.env.CERT_MONITORING!, 'utf-8');
-    const ca = Buffer.from(process.env.CA_CERT!, 'utf-8');
+    const isProduction = process.env.NODE_ENV === 'production';
+    const certsPath = path.resolve(__dirname, '../../certs');
+
+    const key = isProduction
+      ? Buffer.from(process.env.KEY_MONITORING!, 'utf-8')
+      : fs.readFileSync(`${certsPath}/monitoring-private.pem.key`);
+
+    const cert = isProduction
+      ? Buffer.from(process.env.CERT_MONITORING!, 'utf-8')
+      : fs.readFileSync(`${certsPath}/monitoring-cert.pem.crt`);
+
+    const ca = isProduction
+      ? Buffer.from(process.env.CA_CERT!, 'utf-8')
+      : fs.readFileSync(`${certsPath}/AmazonRootCA1.pem`);
 
     this.client = mqtt.connect({
       host: 'a32p2sd11gkckn-ats.iot.us-east-2.amazonaws.com',
