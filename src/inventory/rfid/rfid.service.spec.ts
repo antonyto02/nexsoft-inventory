@@ -5,6 +5,7 @@ import { Product } from '../entities/product.entity';
 import { StockEntry } from '../entities/stock-entry.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
+import { EntryModeService } from './entry-mode.service';
 
 describe('RfidService', () => {
   let service: RfidService;
@@ -14,6 +15,7 @@ describe('RfidService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RfidService,
+        EntryModeService,
         { provide: getRepositoryToken(Product), useValue: repoMock },
         { provide: getRepositoryToken(StockEntry), useValue: repoMock },
         { provide: getRepositoryToken(Movement), useValue: repoMock },

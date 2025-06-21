@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Patch, BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
-import { RfidService } from './rfid/rfid.service';
+import { EntryModeService } from './rfid/entry-mode.service';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(
     private readonly inventoryService: InventoryService,
-    private readonly rfidService: RfidService,
+    private readonly entryModeService: EntryModeService,
   ) {}
 
   @Get('home')
@@ -19,7 +19,7 @@ export class InventoryController {
     if (entryMode === undefined) {
       throw new BadRequestException("El campo 'entry_mode' es obligatorio");
     }
-    this.rfidService.setEntryMode(entryMode);
+    this.entryModeService.setEntryMode(entryMode);
     return {
       message: entryMode ? 'Modo entrada activado' : 'Modo entrada desactivado',
     };
@@ -28,7 +28,7 @@ export class InventoryController {
   @Get('rfid-mode')
   getRfidMode() {
     return {
-      entry_mode: this.rfidService.getEntryMode(),
+      entry_mode: this.entryModeService.getEntryMode(),
     };
   }
 }

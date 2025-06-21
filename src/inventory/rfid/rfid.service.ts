@@ -10,10 +10,10 @@ import { StockEntry } from '../entities/stock-entry.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { RfidEntryItemDto } from '../products/dto/rfid-entry.dto';
+import { EntryModeService } from './entry-mode.service';
 
 @Injectable()
 export class RfidService {
-  private isRfidEntryMode = false;
 
   constructor(
     @InjectRepository(Product)
@@ -24,14 +24,15 @@ export class RfidService {
     private readonly movementRepository: Repository<Movement>,
     @InjectRepository(MovementType)
     private readonly movementTypeRepository: Repository<MovementType>,
+    private readonly entryModeService: EntryModeService,
   ) {}
 
   setEntryMode(entry: boolean) {
-    this.isRfidEntryMode = entry;
+    this.entryModeService.setEntryMode(entry);
   }
 
   getEntryMode() {
-    return this.isRfidEntryMode;
+    return this.entryModeService.getEntryMode();
   }
 
   async registerEntries(productId: string, entries: RfidEntryItemDto[]) {
@@ -49,7 +50,7 @@ export class RfidService {
       throw new BadRequestException('Este producto no utiliza RFID');
     }
 
-    if (!this.isRfidEntryMode) {
+    if (!this.entryModeService.getEntryMode()) {
       throw new BadRequestException('El modo entrada no está activo');
     }
 
