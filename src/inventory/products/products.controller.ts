@@ -13,12 +13,15 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { MovementsService } from '../movements/movements.service';
 import { CreateMovementDto } from '../movements/dto/create-movement.dto';
+import { RfidService } from '../rfid/rfid.service';
+import { RfidEntryDto } from './dto/rfid-entry.dto';
 
 @Controller('inventory/products')
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
     private readonly movementsService: MovementsService,
+    private readonly rfidService: RfidService,
   ) {}
 
   @Post()
@@ -67,6 +70,11 @@ export class ProductsController {
   @Post(':id/movements')
   createMovement(@Param('id') id: string, @Body() dto: CreateMovementDto) {
     return this.movementsService.createManual(id, dto);
+  }
+
+  @Post(':id/rfid-entry')
+  registerRfidEntry(@Param('id') id: string, @Body() dto: RfidEntryDto) {
+    return this.rfidService.registerEntries(id, dto?.entries);
   }
 
   @Get(':id/movements')
