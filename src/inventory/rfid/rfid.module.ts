@@ -4,6 +4,7 @@ import { RfidService } from './rfid.service';
 
 @Module({
   controllers: [RfidController],
-  providers: [RfidService]
+  providers: [RfidService],
+  exports: [RfidService],
 })
 export class RfidModule {}
