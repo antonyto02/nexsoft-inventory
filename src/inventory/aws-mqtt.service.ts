@@ -154,13 +154,50 @@ export class AwsMqttService implements OnModuleInit {
           const bottles = parsed?.botellas;
           if (typeof bottles === 'number') {
             const product = await this.productRepository.findOne({
-              where: { id: 1 },
+              where: { sensor_type: 'camera' },
             });
-            if (product && Number(product.stock) !== bottles) {
-              product.stock = bottles;
-              await this.productRepository.save(product);
-              console.log(`[CAMERA] Stock actualizado a ${bottles}`);
+
+            if (!product) {
+              console.error(
+                '[CAMERA] Producto con sensor tipo camera no encontrado',
+              );
+              return;
             }
+
+            const currentStock = Number(product.stock);
+
+            if (currentStock === bottles) {
+              return; // Sin cambios
+            }
+
+            const difference = bottles - currentStock;
+            const movementTypeId = difference > 0 ? 1 : 2; // Alta : Baja
+
+            const movementType = await this.movementTypeRepository.findOne({
+              where: { id: movementTypeId },
+            });
+
+            if (!movementType) {
+              console.error('[CAMERA] Tipo de movimiento no encontrado');
+              return;
+            }
+
+            const movement = this.movementRepository.create({
+              product,
+              type: movementType,
+              quantity: Math.abs(difference),
+              previous_quantity: currentStock,
+              final_quantity: bottles,
+              movement_date: new Date(),
+            });
+            await this.movementRepository.save(movement);
+
+            product.stock = bottles;
+            await this.productRepository.save(product);
+
+            console.log(
+              `[CAMERA] Stock actualizado de ${currentStock} a ${bottles}`,
+            );
           }
         } catch (err) {
           console.error('[MQTT] Error procesando mensaje de cámara:', err);
