@@ -111,7 +111,7 @@ export class AwsMqttService implements OnModuleInit {
               const movement = this.movementRepository.create({
                 product,
                 type: movementType,
-                quantity: -1,
+                quantity: 1,
                 previous_quantity: prevQuantity,
                 final_quantity: finalQuantity,
                 comment: 'Salida',
