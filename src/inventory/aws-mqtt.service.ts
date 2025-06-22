@@ -16,6 +16,7 @@ dotenv.config(); // Solo útil en local
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
+  private lastCameraValues = new Map<number, number>();
 
   constructor(
     @InjectRepository(StockEntry)
@@ -153,14 +154,49 @@ export class AwsMqttService implements OnModuleInit {
           const parsed = JSON.parse(data);
           const bottles = parsed?.botellas;
           if (typeof bottles === 'number') {
+            const last = this.lastCameraValues.get(1);
+            if (last === bottles) {
+              return;
+            }
+            this.lastCameraValues.set(1, bottles);
+
             const product = await this.productRepository.findOne({
               where: { id: 1 },
             });
-            if (product && Number(product.stock) !== bottles) {
-              product.stock = bottles;
-              await this.productRepository.save(product);
-              console.log(`[CAMERA] Stock actualizado a ${bottles}`);
+
+            if (!product) return;
+
+            const prevQuantity = Number(product.stock);
+            const finalQuantity = bottles;
+
+            if (prevQuantity === finalQuantity) {
+              return;
             }
+
+            const typeId = finalQuantity > prevQuantity ? 1 : 2;
+            const movementType = await this.movementTypeRepository.findOne({
+              where: { id: typeId },
+            });
+            if (!movementType) {
+              console.error('[CAMERA] Tipo de movimiento no encontrado');
+              return;
+            }
+
+            const movement = this.movementRepository.create({
+              product,
+              type: movementType,
+              quantity: Math.abs(finalQuantity - prevQuantity),
+              previous_quantity: prevQuantity,
+              final_quantity: finalQuantity,
+              comment: '',
+              movement_date: new Date(),
+              deleted_at: null,
+            });
+            await this.movementRepository.save(movement);
+
+            product.stock = finalQuantity;
+            await this.productRepository.save(product);
+            console.log(`[CAMERA] Stock actualizado a ${bottles}`);
           }
         } catch (err) {
           console.error('[MQTT] Error procesando mensaje de cámara:', err);
