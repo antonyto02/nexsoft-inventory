@@ -6,6 +6,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { StockEntry } from './entities/stock-entry.entity';
+import { Product } from './entities/product.entity';
+import { Movement } from './entities/movement.entity';
+import { MovementType } from './entities/movement-type.entity';
 
 dotenv.config(); // Solo útil en local
 
@@ -16,6 +19,12 @@ export class AwsMqttService implements OnModuleInit {
   constructor(
     @InjectRepository(StockEntry)
     private readonly stockEntryRepository: Repository<StockEntry>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRepository(Movement)
+    private readonly movementRepository: Repository<Movement>,
+    @InjectRepository(MovementType)
+    private readonly movementTypeRepository: Repository<MovementType>,
   ) {}
 
   onModuleInit() {
@@ -83,10 +92,38 @@ export class AwsMqttService implements OnModuleInit {
           if (typeof tag === 'string') {
             const existing = await this.stockEntryRepository.findOne({
               where: { rfid_tag: tag },
+              relations: ['product'],
             });
             if (existing) {
+              const product = existing.product;
+
+              const prevQuantity = Number(product.stock);
+              const finalQuantity = prevQuantity - 1;
+
+              const movementType = await this.movementTypeRepository.findOne({
+                where: { id: 2 },
+              });
+              if (!movementType) {
+                console.error('[RFID] Tipo de movimiento no encontrado');
+                return;
+              }
+
+              const movement = this.movementRepository.create({
+                product,
+                type: movementType,
+                quantity: -1,
+                previous_quantity: prevQuantity,
+                final_quantity: finalQuantity,
+                comment: 'Salida',
+                movement_date: new Date(),
+              });
+              await this.movementRepository.save(movement);
+
+              product.stock = finalQuantity;
+              await this.productRepository.save(product);
+
               await this.stockEntryRepository.delete({ id: existing.id });
-              console.log(`[RFID] Etiqueta eliminada: ${tag}`);
+              console.log(`[RFID] Etiqueta procesada y eliminada: ${tag}`);
             }
           }
         } catch (err) {
