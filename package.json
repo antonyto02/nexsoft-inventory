@@ -28,11 +28,13 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.1.3",
     "@types/mqtt": "^0.0.34",
     "mqtt": "^5.13.1",
     "pg": "^8.16.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1",
     "typeorm": "^0.3.24"
   },
   "devDependencies": {
