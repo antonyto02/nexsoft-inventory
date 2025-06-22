@@ -1,14 +1,22 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as mqtt from 'mqtt';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import { StockEntry } from './entities/stock-entry.entity';
 
 dotenv.config(); // Solo útil en local
 
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
+
+  constructor(
+    @InjectRepository(StockEntry)
+    private readonly stockEntryRepository: Repository<StockEntry>,
+  ) {}
 
   onModuleInit() {
     this.connectToMqttBroker();
@@ -67,7 +75,24 @@ export class AwsMqttService implements OnModuleInit {
     this.client.on('message', async (topic, message) => {
       const data = message.toString();
       console.log(`[MQTT] 📩 Mensaje recibido en "${topic}": "${data}"`);
-      // Aquí puedes agregar tu lógica de guardado en BD o lo que necesites
+
+      if (topic === 'nexsoft/inventory/rfid') {
+        try {
+          const parsed = JSON.parse(data);
+          const tag = parsed?.rfid_tag;
+          if (typeof tag === 'string') {
+            const existing = await this.stockEntryRepository.findOne({
+              where: { rfid_tag: tag },
+            });
+            if (existing) {
+              await this.stockEntryRepository.delete({ id: existing.id });
+              console.log(`[RFID] Etiqueta eliminada: ${tag}`);
+            }
+          }
+        } catch (err) {
+          console.error('[MQTT] Error procesando mensaje RFID:', err);
+        }
+      }
     });
   }
 }
