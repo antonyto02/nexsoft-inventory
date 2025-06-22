@@ -13,7 +13,7 @@ import { RfidEntryItemDto } from '../products/dto/rfid-entry.dto';
 
 @Injectable()
 export class RfidService {
-  private isRfidEntryMode = false;
+  private isRfidEntryMode = true;
 
   constructor(
     @InjectRepository(Product)
