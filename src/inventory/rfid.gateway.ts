@@ -7,6 +7,7 @@ export class RfidGateway {
   server: Server;
 
   sendToFrontend(tag: string) {
+    console.log('[GATEWAY] 🔥 Emitiendo por WebSocket:', tag);
     this.server.emit('rfid-scan', { rfid_tag: tag });
   }
 }

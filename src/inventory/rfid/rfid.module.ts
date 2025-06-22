@@ -7,13 +7,14 @@ import { MovementType } from '../entities/movement-type.entity';
 import { RfidController } from './rfid.controller';
 import { RfidService } from './rfid.service';
 import { EntryModeService } from './entry-mode.service';
+import { RfidGateway } from '../rfid.gateway'; // 👈 Asegúrate de importar esto
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, StockEntry, Movement, MovementType]),
   ],
   controllers: [RfidController],
-  providers: [RfidService, EntryModeService],
-  exports: [RfidService, EntryModeService],
+  providers: [RfidService, EntryModeService, RfidGateway], // 👈 AÑADE RfidGateway
+  exports: [RfidService, EntryModeService, RfidGateway],   // 👈 TAMBIÉN AQUÍ
 })
 export class RfidModule {}

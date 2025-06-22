@@ -23,7 +23,8 @@ export class RfidListenerService implements OnModuleInit {
 
   private connect() {
     const isProduction = process.env.NODE_ENV === 'production';
-    const certsPath = path.resolve(__dirname, '../certs');
+    const certsPath = path.resolve(__dirname, '../../certs')
+
 
     const key = isProduction
       ? Buffer.from(process.env.KEY_MONITORING || '', 'utf-8')
@@ -64,15 +65,18 @@ export class RfidListenerService implements OnModuleInit {
       try {
         const data = JSON.parse(payload.toString());
         const tag = data.rfid_tag;
-        if (this.entryModeService.getEntryMode()) {
-          this.gateway.sendToFrontend(tag);
-        } else {
-          // modo salida
-          return;
-        }
+
+        // 👇🔥 MODIFICA SOLO ESTO TEMPORALMENTE:
+        this.gateway.sendToFrontend(tag);
+
+        // if (this.entryModeService.getEntryMode()) {
+        //   this.gateway.sendToFrontend(tag);
+        // }
+
       } catch (err) {
         console.error('[RFID LISTENER] Error procesando mensaje', err);
       }
     });
+
   }
 }

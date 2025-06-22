@@ -8,7 +8,9 @@ export class EntryModeService {
     this.entryMode = mode;
   }
 
-  getEntryMode() {
+  getEntryMode(): boolean {
+    console.log('[ENTRY MODE] Valor leído:', this.entryMode);
     return this.entryMode;
   }
+
 }

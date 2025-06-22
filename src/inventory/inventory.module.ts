@@ -38,7 +38,6 @@ import { RfidListenerService } from './rfid-listener.service';
     ProductsService,
     MovementsService,
     AwsS3Service,
-    RfidGateway,
     RfidListenerService,
   ], // 👈 Registra el servicio MQTT aquí
 })
