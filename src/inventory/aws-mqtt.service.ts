@@ -157,9 +157,34 @@ export class AwsMqttService implements OnModuleInit {
               where: { id: 1 },
             });
             if (product && Number(product.stock) !== bottles) {
-              product.stock = bottles;
+              const prevQuantity = Number(product.stock);
+              const finalQuantity = bottles;
+
+              const typeId = finalQuantity > prevQuantity ? 1 : 2;
+              const movementType = await this.movementTypeRepository.findOne({
+                where: { id: typeId },
+              });
+              if (!movementType) {
+                console.error('[CAMERA] Tipo de movimiento no encontrado');
+                return;
+              }
+
+              const movement = this.movementRepository.create({
+                product,
+                type: movementType,
+                quantity: Math.abs(finalQuantity - prevQuantity),
+                previous_quantity: prevQuantity,
+                final_quantity: finalQuantity,
+                movement_date: new Date(),
+              });
+              await this.movementRepository.save(movement);
+
+              product.stock = finalQuantity;
               await this.productRepository.save(product);
-              console.log(`[CAMERA] Stock actualizado a ${bottles}`);
+
+              console.log(
+                `[CAMERA] Stock actualizado de ${prevQuantity} a ${finalQuantity}`,
+              );
             }
           }
         } catch (err) {
