@@ -92,10 +92,23 @@ export class AwsMqttService implements OnModuleInit {
           const parsed = JSON.parse(data);
           const tag = parsed?.rfid_tag;
           if (typeof tag === 'string') {
+            console.log(
+              `[RFID] Tag recibido (raw): "${tag}" (len=${tag.length})`,
+            );
+            const sanitizedTag = tag.trim();
+            if (sanitizedTag !== tag) {
+              console.log(
+                `[RFID] Tag sanitizado para búsqueda: "${sanitizedTag}" (len=${sanitizedTag.length})`,
+              );
+            }
+
             const existing = await this.stockEntryRepository.findOne({
-              where: { rfid_tag: tag },
+              where: { rfid_tag: sanitizedTag },
               relations: ['product'],
             });
+            console.log(
+              `[RFID] Registro ${existing ? 'encontrado' : 'no encontrado'} para: "${sanitizedTag}"`,
+            );
             if (existing) {
               const product = existing.product;
 
@@ -125,9 +138,11 @@ export class AwsMqttService implements OnModuleInit {
               await this.productRepository.save(product);
 
               await this.stockEntryRepository.delete({ id: existing.id });
-              console.log(`[RFID] Etiqueta procesada y eliminada: ${tag}`);
+              console.log(
+                `[RFID] Etiqueta procesada y eliminada: ${sanitizedTag}`,
+              );
             } else {
-              this.rfidGateway.emitTagDetected(tag);
+              this.rfidGateway.emitTagDetected(sanitizedTag);
             }
           }
         } catch (err) {
