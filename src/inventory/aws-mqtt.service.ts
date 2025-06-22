@@ -6,6 +6,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { StockEntry } from './entities/stock-entry.entity';
+import { Product } from './entities/product.entity';
+import { Movement } from './entities/movement.entity';
+import { MovementType } from './entities/movement-type.entity';
 
 dotenv.config(); // Solo útil en local
 
@@ -16,6 +19,12 @@ export class AwsMqttService implements OnModuleInit {
   constructor(
     @InjectRepository(StockEntry)
     private readonly stockEntryRepository: Repository<StockEntry>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+    @InjectRepository(Movement)
+    private readonly movementRepository: Repository<Movement>,
+    @InjectRepository(MovementType)
+    private readonly movementTypeRepository: Repository<MovementType>,
   ) {}
 
   onModuleInit() {
@@ -87,6 +96,32 @@ export class AwsMqttService implements OnModuleInit {
             if (existing) {
               await this.stockEntryRepository.delete({ id: existing.id });
               console.log(`[RFID] Etiqueta eliminada: ${tag}`);
+
+              const product = existing.product;
+              if (product) {
+                const prevQuantity = Number(product.stock);
+                const finalQuantity = prevQuantity - 1;
+
+                product.stock = finalQuantity;
+                await this.productRepository.save(product);
+
+                const movementType = await this.movementTypeRepository.findOne({
+                  where: { id: 2 },
+                });
+
+                if (movementType) {
+                  const movement = this.movementRepository.create({
+                    product,
+                    type: movementType,
+                    quantity: -1,
+                    previous_quantity: prevQuantity,
+                    final_quantity: finalQuantity,
+                    comment: 'Salida',
+                  });
+
+                  await this.movementRepository.save(movement);
+                }
+              }
             }
           }
         } catch (err) {
