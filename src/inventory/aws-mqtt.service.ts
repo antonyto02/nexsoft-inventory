@@ -9,6 +9,7 @@ import { StockEntry } from './entities/stock-entry.entity';
 import { Product } from './entities/product.entity';
 import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
+import { RfidGateway } from './gateways/rfid.gateway';
 
 dotenv.config(); // Solo útil en local
 
@@ -25,6 +26,7 @@ export class AwsMqttService implements OnModuleInit {
     private readonly movementRepository: Repository<Movement>,
     @InjectRepository(MovementType)
     private readonly movementTypeRepository: Repository<MovementType>,
+    private readonly rfidGateway: RfidGateway,
   ) {}
 
   onModuleInit() {
@@ -124,6 +126,8 @@ export class AwsMqttService implements OnModuleInit {
 
               await this.stockEntryRepository.delete({ id: existing.id });
               console.log(`[RFID] Etiqueta procesada y eliminada: ${tag}`);
+            } else {
+              this.rfidGateway.emitTagDetected(tag);
             }
           }
         } catch (err) {
