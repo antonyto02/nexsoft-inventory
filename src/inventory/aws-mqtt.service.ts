@@ -156,11 +156,36 @@ export class AwsMqttService implements OnModuleInit {
             const product = await this.productRepository.findOne({
               where: { id: 1 },
             });
-            if (product && Number(product.stock) !== bottles) {
-              product.stock = bottles;
-              await this.productRepository.save(product);
-              console.log(`[CAMERA] Stock actualizado a ${bottles}`);
+            if (!product) return;
+
+            const prevQuantity = Number(product.stock);
+            if (prevQuantity === bottles) return;
+
+            const finalQuantity = bottles;
+            const movementTypeId = finalQuantity > prevQuantity ? 1 : 2;
+            const movementType = await this.movementTypeRepository.findOne({
+              where: { id: movementTypeId },
+            });
+            if (!movementType) {
+              console.error('[CAMERA] Tipo de movimiento no encontrado');
+              return;
             }
+
+            const movement = this.movementRepository.create({
+              product,
+              type: movementType,
+              quantity: Math.abs(finalQuantity - prevQuantity),
+              previous_quantity: prevQuantity,
+              final_quantity: finalQuantity,
+              comment: '',
+              movement_date: new Date(),
+              deleted_at: null,
+            });
+            await this.movementRepository.save(movement);
+
+            product.stock = finalQuantity;
+            await this.productRepository.save(product);
+            console.log(`[CAMERA] Stock actualizado a ${bottles}`);
           }
         } catch (err) {
           console.error('[MQTT] Error procesando mensaje de cámara:', err);
