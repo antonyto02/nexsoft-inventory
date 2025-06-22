@@ -148,6 +148,23 @@ export class AwsMqttService implements OnModuleInit {
         } catch (err) {
           console.error('[MQTT] Error procesando mensaje RFID:', err);
         }
+      } else if (topic === 'nexsoft/inventory/camera') {
+        try {
+          const parsed = JSON.parse(data);
+          const bottles = parsed?.botellas;
+          if (typeof bottles === 'number') {
+            const product = await this.productRepository.findOne({
+              where: { id: 1 },
+            });
+            if (product && Number(product.stock) !== bottles) {
+              product.stock = bottles;
+              await this.productRepository.save(product);
+              console.log(`[CAMERA] Stock actualizado a ${bottles}`);
+            }
+          }
+        } catch (err) {
+          console.error('[MQTT] Error procesando mensaje de cámara:', err);
+        }
       }
     });
   }
