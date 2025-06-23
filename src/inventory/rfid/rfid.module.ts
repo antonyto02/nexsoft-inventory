@@ -6,10 +6,12 @@ import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { RfidController } from './rfid.controller';
 import { RfidService } from './rfid.service';
+import { InventoryGatewayModule } from '../gateways/inventory-gateway.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, StockEntry, Movement, MovementType]),
+    InventoryGatewayModule,
   ],
   controllers: [RfidController],
   providers: [RfidService],

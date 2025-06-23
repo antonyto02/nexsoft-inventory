@@ -10,6 +10,8 @@ import { Product } from './entities/product.entity';
 import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
 import { RfidGateway } from './gateways/rfid.gateway';
+import { InventoryGateway } from './gateways/inventory.gateway';
+import { buildProductCard } from './utils/product-card.util';
 
 dotenv.config(); // Solo útil en local
 
@@ -27,6 +29,7 @@ export class AwsMqttService implements OnModuleInit {
     @InjectRepository(MovementType)
     private readonly movementTypeRepository: Repository<MovementType>,
     private readonly rfidGateway: RfidGateway,
+    private readonly inventoryGateway: InventoryGateway,
   ) {}
 
   onModuleInit() {
@@ -137,6 +140,18 @@ export class AwsMqttService implements OnModuleInit {
               product.stock = finalQuantity;
               await this.productRepository.save(product);
 
+              const updated = await this.productRepository.findOne({
+                where: { id: product.id },
+                relations: ['category'],
+              });
+              if (updated) {
+                const card = await buildProductCard(
+                  updated,
+                  this.stockEntryRepository,
+                );
+                this.inventoryGateway.emitInventoryUpdate(card);
+              }
+
               await this.stockEntryRepository.delete({ id: existing.id });
               console.log(
                 `[RFID] Etiqueta procesada y eliminada: ${sanitizedTag}`,
@@ -181,6 +196,18 @@ export class AwsMqttService implements OnModuleInit {
 
               product.stock = finalQuantity;
               await this.productRepository.save(product);
+
+              const updated = await this.productRepository.findOne({
+                where: { id: product.id },
+                relations: ['category'],
+              });
+              if (updated) {
+                const card = await buildProductCard(
+                  updated,
+                  this.stockEntryRepository,
+                );
+                this.inventoryGateway.emitInventoryUpdate(card);
+              }
 
               console.log(
                 `[CAMERA] Stock actualizado de ${prevQuantity} a ${finalQuantity}`,

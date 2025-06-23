@@ -5,6 +5,8 @@ import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
 import { StockEntry } from '../entities/stock-entry.entity';
+import { InventoryGateway } from '../gateways/inventory.gateway';
+import { buildProductCard } from '../utils/product-card.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
@@ -19,6 +21,7 @@ export class ProductsService {
     private readonly unitRepository: Repository<Unit>,
     @InjectRepository(StockEntry)
     private readonly stockEntryRepository: Repository<StockEntry>,
+    private readonly inventoryGateway: InventoryGateway,
   ) {}
 
   async create(dto: CreateProductDto) {
@@ -260,14 +263,38 @@ export class ProductsService {
       throw new NotFoundException('Producto no encontrado');
     }
 
-    if (dto.name !== undefined) product.name = dto.name;
-    if (dto.brand !== undefined) product.brand = dto.brand;
-    if (dto.description !== undefined) product.description = dto.description;
-    if (dto.stock_minimum !== undefined)
+    let changed = false;
+
+    if (dto.name !== undefined && dto.name !== product.name) {
+      product.name = dto.name;
+      changed = true;
+    }
+    if (dto.brand !== undefined && dto.brand !== product.brand) {
+      product.brand = dto.brand;
+      changed = true;
+    }
+    if (dto.description !== undefined && dto.description !== product.description) {
+      product.description = dto.description;
+      changed = true;
+    }
+    if (
+      dto.stock_minimum !== undefined &&
+      dto.stock_minimum !== Number(product.min_stock)
+    ) {
       product.min_stock = dto.stock_minimum;
-    if (dto.stock_maximum !== undefined)
+      changed = true;
+    }
+    if (
+      dto.stock_maximum !== undefined &&
+      dto.stock_maximum !== Number(product.max_stock)
+    ) {
       product.max_stock = dto.stock_maximum;
-    if (dto.image_url !== undefined) product.image_url = dto.image_url;
+      changed = true;
+    }
+    if (dto.image_url !== undefined && dto.image_url !== product.image_url) {
+      product.image_url = dto.image_url;
+      changed = true;
+    }
 
     if (dto.category !== undefined) {
       let category: Category | null = null;
@@ -283,10 +310,24 @@ export class ProductsService {
       if (!category) {
         throw new BadRequestException('Category not found');
       }
-      product.category = category;
+      if (product.category?.id !== category.id) {
+        product.category = category;
+        changed = true;
+      }
     }
 
     await this.productRepository.save(product);
+
+    if (changed) {
+      const updated = await this.productRepository.findOne({
+        where: { id: numericId },
+        relations: ['category'],
+      });
+      if (updated) {
+        const card = await buildProductCard(updated, this.stockEntryRepository);
+        this.inventoryGateway.emitInventoryUpdate(card);
+      }
+    }
 
     return { message: 'Producto actualizado correctamente' };
   }

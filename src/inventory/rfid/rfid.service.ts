@@ -10,6 +10,8 @@ import { StockEntry } from '../entities/stock-entry.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { RfidEntryItemDto } from '../products/dto/rfid-entry.dto';
+import { InventoryGateway } from '../gateways/inventory.gateway';
+import { buildProductCard } from '../utils/product-card.util';
 
 @Injectable()
 export class RfidService {
@@ -24,6 +26,7 @@ export class RfidService {
     private readonly movementRepository: Repository<Movement>,
     @InjectRepository(MovementType)
     private readonly movementTypeRepository: Repository<MovementType>,
+    private readonly inventoryGateway: InventoryGateway,
   ) {}
 
   setEntryMode(entry: boolean) {
@@ -91,6 +94,15 @@ export class RfidService {
 
       product.stock = finalQuantity;
       await this.productRepository.save(product);
+
+      const updated = await this.productRepository.findOne({
+        where: { id },
+        relations: ['category'],
+      });
+      if (updated) {
+        const card = await buildProductCard(updated, this.stockEntryRepository);
+        this.inventoryGateway.emitInventoryUpdate(card);
+      }
 
       const movementType = await this.movementTypeRepository.findOne({
         where: { id: 1 },

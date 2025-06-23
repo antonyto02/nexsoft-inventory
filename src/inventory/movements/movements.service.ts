@@ -9,6 +9,9 @@ import { Product } from '../entities/product.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { CreateMovementDto } from './dto/create-movement.dto';
+import { StockEntry } from '../entities/stock-entry.entity';
+import { InventoryGateway } from '../gateways/inventory.gateway';
+import { buildProductCard } from '../utils/product-card.util';
 
 @Injectable()
 export class MovementsService {
@@ -19,6 +22,9 @@ export class MovementsService {
     private readonly movementRepository: Repository<Movement>,
     @InjectRepository(MovementType)
     private readonly movementTypeRepository: Repository<MovementType>,
+    @InjectRepository(StockEntry)
+    private readonly stockEntryRepository: Repository<StockEntry>,
+    private readonly inventoryGateway: InventoryGateway,
   ) {}
 
   async createManual(productId: string, dto: CreateMovementDto) {
@@ -89,6 +95,15 @@ export class MovementsService {
 
     product.stock = finalQuantity;
     await this.productRepository.save(product);
+
+    const updated = await this.productRepository.findOne({
+      where: { id },
+      relations: ['category'],
+    });
+    if (updated && finalQuantity !== prevQuantity) {
+      const card = await buildProductCard(updated, this.stockEntryRepository);
+      this.inventoryGateway.emitInventoryUpdate(card);
+    }
 
     const movement = this.movementRepository.create({
       product,

@@ -16,6 +16,7 @@ import { StockEntry } from './entities/stock-entry.entity';
 import { RfidModule } from './rfid/rfid.module';
 import { AwsS3Service } from './products/s3.service';
 import { RfidGateway } from './gateways/rfid.gateway';
+import { InventoryGatewayModule } from './gateways/inventory-gateway.module';
 
 
 @Module({
@@ -29,6 +30,7 @@ import { RfidGateway } from './gateways/rfid.gateway';
       StockEntry
     ]),
     RfidModule,
+    InventoryGatewayModule,
   ],
   controllers: [InventoryController, ProductsController, MovementsController],
   providers: [
