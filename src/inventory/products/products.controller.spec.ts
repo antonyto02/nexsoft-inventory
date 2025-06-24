@@ -56,4 +56,12 @@ describe('ProductsController', () => {
     expect(svc.remove).toHaveBeenCalledWith('2');
     expect(res).toBe('done');
   });
+
+  it('search should call service with params', async () => {
+    const svc = controller['productsService'];
+    svc.searchByName = jest.fn().mockResolvedValue('data');
+    const res = await controller.search('agua', '5', '10');
+    expect(svc.searchByName).toHaveBeenCalledWith('agua', 5, 10);
+    expect(res).toBe('data');
+  });
 });

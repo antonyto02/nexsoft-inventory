@@ -185,18 +185,48 @@ export class ProductsService {
     };
   }
 
-  async searchByName(name?: string) {
-    if (!name) {
-      throw new BadRequestException('El nombre es requerido');
+  private async hasUnaccent(): Promise<boolean> {
+    try {
+      const result = await this.productRepository.query(
+        "SELECT extname FROM pg_extension WHERE extname = 'unaccent'",
+      );
+      return result.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  async searchByName(name?: string, limit = 20, offset = 0) {
+    if (!name || name.length < 2) {
+      throw new BadRequestException(
+        "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
+      );
     }
 
-    const result = await this.productRepository
+    const useUnaccent = await this.hasUnaccent();
+
+    let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      .where('LOWER(product.name) LIKE LOWER(:name)', { name: `%${name}%` })
-      .andWhere('product.is_active = true')
+      .where('product.is_active = true')
+      .andWhere('product.deleted_at IS NULL');
+
+    const searchTerm = `%${name}%`;
+
+    if (useUnaccent) {
+      qb = qb.andWhere(
+        'unaccent(product.name) ILIKE unaccent(:name)',
+        { name: searchTerm },
+      );
+    } else {
+      qb = qb.andWhere('product.name ILIKE :name', { name: searchTerm });
+    }
+
+    const [result, total] = await qb
       .orderBy('product.name', 'ASC')
-      .getMany();
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
 
     const products = result.map((p) => ({
       name: p.name,
@@ -206,10 +236,17 @@ export class ProductsService {
       sensor_type: p.sensor_type,
     }));
 
-    return {
+    const response: any = {
       message: 'Búsqueda completada',
+      total,
       results: products,
     };
+
+    if (!useUnaccent) {
+      response.warning = 'Extensión unaccent no habilitada';
+    }
+
+    return response;
   }
 
   async findById(id: string) {
