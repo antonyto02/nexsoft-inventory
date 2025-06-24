@@ -11,7 +11,7 @@ import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
 import { RfidGateway } from './gateways/rfid.gateway';
 
-dotenv.config(); // Solo útil en local
+dotenv.config();
 
 @Injectable()
 export class AwsMqttService implements OnModuleInit {
@@ -34,34 +34,52 @@ export class AwsMqttService implements OnModuleInit {
   }
 
   private connectToMqttBroker() {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const certsPath = path.resolve(__dirname, '../../certs');
+    const mode = process.env.MQTT_MODE || 'local';
 
-    const key = isProduction
-      ? Buffer.from(process.env.KEY_MONITORING!, 'utf-8')
-      : fs.readFileSync(`${certsPath}/monitoring-private.pem.key`);
+    if (mode === 'local') {
+      console.log('[MQTT] 🔌 Conectando a Mosquitto local...');
 
-    const cert = isProduction
-      ? Buffer.from(process.env.CERT_MONITORING!, 'utf-8')
-      : fs.readFileSync(`${certsPath}/monitoring-cert.pem.crt`);
+      this.client = mqtt.connect({
+        host: process.env.MQTT_LOCAL_HOST || 'localhost',
+        port: Number(process.env.MQTT_LOCAL_PORT || 1883),
+        protocol: process.env.MQTT_LOCAL_PROTOCOL as 'mqtt' || 'mqtt',
+        clientId: process.env.MQTT_LOCAL_CLIENT_ID || 'nexsoft-inventory-local',
+        reconnectPeriod: 1000,
+      });
+    } else if (mode === 'prod') {
+      console.log('[MQTT] 🔐 Conectando a AWS IoT Core...');
 
-    const ca = isProduction
-      ? Buffer.from(process.env.CA_CERT!, 'utf-8')
-      : fs.readFileSync(`${certsPath}/AmazonRootCA1.pem`);
+      const certsPath = path.resolve(__dirname, '../../certs');
 
-    this.client = mqtt.connect({
-      host: 'a32p2sd11gkckn-ats.iot.us-east-2.amazonaws.com',
-      port: 8883,
-      protocol: 'mqtts',
-      key,
-      cert,
-      ca,
-      clean: true,
-      clientId: `nexsoft-inventory-backend-${Math.random().toString(16).slice(2)}`, // único para evitar reconexión
-    });
+      const key = process.env.KEY_INVENTORY
+        ? Buffer.from(process.env.KEY_INVENTORY, 'utf-8')
+        : fs.readFileSync(`${certsPath}/inventory-private.pem.key`);
+
+      const cert = process.env.CERT_INVENTORY
+        ? Buffer.from(process.env.CERT_INVENTORY, 'utf-8')
+        : fs.readFileSync(`${certsPath}/inventory-cert.pem.crt`);
+
+      const ca = process.env.CA_CERT
+        ? Buffer.from(process.env.CA_CERT, 'utf-8')
+        : fs.readFileSync(`${certsPath}/AmazonRootCA1.pem`);
+
+      this.client = mqtt.connect({
+        host: process.env.MQTT_AWS_HOST,
+        port: Number(process.env.MQTT_AWS_PORT || 8883),
+        protocol: process.env.MQTT_AWS_PROTOCOL as 'mqtts',
+        key,
+        cert,
+        ca,
+        clean: true,
+        clientId: process.env.MQTT_AWS_CLIENT_ID || `nexsoft-inventory-backend-${Math.random().toString(16).slice(2)}`,
+        rejectUnauthorized: true,
+      });
+    } else {
+      throw new Error(`[MQTT] ❌ Modo desconocido: ${mode}`);
+    }
 
     this.client.on('connect', () => {
-      console.log('[MQTT] ✅ Conectado a AWS IoT');
+      console.log('[MQTT] ✅ Conectado');
       this.client.subscribe('nexsoft/inventory/#', (err) => {
         if (err) {
           console.error('[MQTT] ❌ Error al suscribirse:', err);
@@ -76,7 +94,7 @@ export class AwsMqttService implements OnModuleInit {
     });
 
     this.client.on('close', () => {
-      console.warn('[MQTT] 🔌 Conexión cerrada por AWS');
+      console.warn('[MQTT] 🔌 Conexión cerrada');
     });
 
     this.client.on('error', (error) => {
@@ -85,112 +103,83 @@ export class AwsMqttService implements OnModuleInit {
 
     this.client.on('message', async (topic, message) => {
       const data = message.toString();
-      console.log(`[MQTT] 📩 Mensaje recibido en "${topic}": "${data}"`);
-
-      if (topic === 'nexsoft/inventory/rfid') {
-        try {
-          const parsed = JSON.parse(data);
-          const tag = parsed?.rfid_tag;
-          if (typeof tag === 'string') {
-            console.log(
-              `[RFID] Tag recibido (raw): "${tag}" (len=${tag.length})`,
-            );
-            const sanitizedTag = tag.trim();
-            if (sanitizedTag !== tag) {
-              console.log(
-                `[RFID] Tag sanitizado para búsqueda: "${sanitizedTag}" (len=${sanitizedTag.length})`,
-              );
-            }
-
-            const existing = await this.stockEntryRepository.findOne({
-              where: { rfid_tag: sanitizedTag },
-              relations: ['product'],
-            });
-            console.log(
-              `[RFID] Registro ${existing ? 'encontrado' : 'no encontrado'} para: "${sanitizedTag}"`,
-            );
-            if (existing) {
-              const product = existing.product;
-
-              const prevQuantity = Number(product.stock);
-              const finalQuantity = prevQuantity - 1;
-
-              const movementType = await this.movementTypeRepository.findOne({
-                where: { id: 2 },
-              });
-              if (!movementType) {
-                console.error('[RFID] Tipo de movimiento no encontrado');
-                return;
-              }
-
-              const movement = this.movementRepository.create({
-                product,
-                type: movementType,
-                quantity: 1,
-                previous_quantity: prevQuantity,
-                final_quantity: finalQuantity,
-                comment: 'Salida',
-                movement_date: new Date(),
-              });
-              await this.movementRepository.save(movement);
-
-              product.stock = finalQuantity;
-              await this.productRepository.save(product);
-
-              await this.stockEntryRepository.delete({ id: existing.id });
-              console.log(
-                `[RFID] Etiqueta procesada y eliminada: ${sanitizedTag}`,
-              );
-            } else {
-              this.rfidGateway.emitTagDetected(sanitizedTag);
-            }
-          }
-        } catch (err) {
-          console.error('[MQTT] Error procesando mensaje RFID:', err);
+      console.log(`[MQTT] 📩 ${topic}: ${data}`);
+      try {
+        const parsed = JSON.parse(data);
+        if (topic === 'nexsoft/inventory/rfid') {
+          await this.processRfid(parsed);
+        } else if (topic === 'nexsoft/inventory/camera') {
+          await this.processCamera(parsed);
         }
-      } else if (topic === 'nexsoft/inventory/camera') {
-        try {
-          const parsed = JSON.parse(data);
-          const bottles = parsed?.botellas;
-          if (typeof bottles === 'number') {
-            const product = await this.productRepository.findOne({
-              where: { id: 1 },
-            });
-            if (product && Number(product.stock) !== bottles) {
-              const prevQuantity = Number(product.stock);
-              const finalQuantity = bottles;
-
-              const typeId = finalQuantity > prevQuantity ? 1 : 2;
-              const movementType = await this.movementTypeRepository.findOne({
-                where: { id: typeId },
-              });
-              if (!movementType) {
-                console.error('[CAMERA] Tipo de movimiento no encontrado');
-                return;
-              }
-
-              const movement = this.movementRepository.create({
-                product,
-                type: movementType,
-                quantity: Math.abs(finalQuantity - prevQuantity),
-                previous_quantity: prevQuantity,
-                final_quantity: finalQuantity,
-                movement_date: new Date(),
-              });
-              await this.movementRepository.save(movement);
-
-              product.stock = finalQuantity;
-              await this.productRepository.save(product);
-
-              console.log(
-                `[CAMERA] Stock actualizado de ${prevQuantity} a ${finalQuantity}`,
-              );
-            }
-          }
-        } catch (err) {
-          console.error('[MQTT] Error procesando mensaje de cámara:', err);
-        }
+      } catch (err) {
+        console.error('[MQTT] ❌ Error procesando mensaje:', err);
       }
     });
+  }
+
+  private async processRfid(parsed: any) {
+    const tag = parsed?.rfid_tag?.trim();
+    if (!tag) return;
+
+    const existing = await this.stockEntryRepository.findOne({
+      where: { rfid_tag: tag },
+      relations: ['product'],
+    });
+
+    if (existing) {
+      const product = existing.product;
+      const prevQuantity = Number(product.stock);
+      const finalQuantity = prevQuantity - 1;
+      const movementType = await this.movementTypeRepository.findOne({ where: { id: 2 } });
+      if (!movementType) return;
+
+      const movement = this.movementRepository.create({
+        product,
+        type: movementType,
+        quantity: 1,
+        previous_quantity: prevQuantity,
+        final_quantity: finalQuantity,
+        comment: 'Salida',
+        movement_date: new Date(),
+      });
+      await this.movementRepository.save(movement);
+
+      product.stock = finalQuantity;
+      await this.productRepository.save(product);
+
+      await this.stockEntryRepository.delete({ id: existing.id });
+      console.log(`[RFID] Procesado y eliminado: ${tag}`);
+    } else {
+      this.rfidGateway.emitTagDetected(tag);
+    }
+  }
+
+  private async processCamera(parsed: any) {
+    const bottles = parsed?.botellas;
+    if (typeof bottles !== 'number') return;
+
+    const product = await this.productRepository.findOne({ where: { id: 1 } });
+    if (!product || Number(product.stock) === bottles) return;
+
+    const prevQuantity = Number(product.stock);
+    const finalQuantity = bottles;
+    const typeId = finalQuantity > prevQuantity ? 1 : 2;
+    const movementType = await this.movementTypeRepository.findOne({ where: { id: typeId } });
+    if (!movementType) return;
+
+    const movement = this.movementRepository.create({
+      product,
+      type: movementType,
+      quantity: Math.abs(finalQuantity - prevQuantity),
+      previous_quantity: prevQuantity,
+      final_quantity: finalQuantity,
+      movement_date: new Date(),
+    });
+    await this.movementRepository.save(movement);
+
+    product.stock = finalQuantity;
+    await this.productRepository.save(product);
+
+    console.log(`[CAMERA] Stock actualizado de ${prevQuantity} a ${finalQuantity}`);
   }
 }
