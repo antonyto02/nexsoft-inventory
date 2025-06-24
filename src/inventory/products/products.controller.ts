@@ -16,7 +16,7 @@ import { CreateMovementDto } from '../movements/dto/create-movement.dto';
 import { RfidService } from '../rfid/rfid.service';
 import { RfidEntryDto } from './dto/rfid-entry.dto';
 import { AwsS3Service } from './s3.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 
 
 @Controller('inventory/products')
@@ -57,8 +57,25 @@ export class ProductsController {
   }
 
   @Get('search')
-  search(@Query('name') name?: string) {
-    return this.productsService.searchByName(name);
+  async search(
+    @Query('name') name?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    if (!name || name.length < 2) {
+      throw new BadRequestException(
+        "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
+      );
+    }
+
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+
+    try {
+      return await this.productsService.searchByName(name, limitNum, offsetNum);
+    } catch (err) {
+      throw new InternalServerErrorException();
+    }
   }
   @Get('upload-url')
   getUploadUrl(

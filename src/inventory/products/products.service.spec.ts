@@ -62,7 +62,7 @@ describe('ProductsService', () => {
   });
 
   it('should throw error when name is missing', async () => {
-    await expect(service.searchByName(undefined)).rejects.toThrow();
+    await expect(service.searchByName(undefined as any, 20, 0)).rejects.toThrow();
   });
 
   it('searchByName should return mapped products', async () => {
@@ -71,22 +71,29 @@ describe('ProductsService', () => {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([
-        {
-          name: 'Agua natural 1L',
-          image_url: 'url',
-          stock: 30,
-          category: { name: 'Bebidas' },
-          sensor_type: 'rfid',
-        },
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([
+        [
+          {
+            name: 'Agua natural 1L',
+            image_url: 'url',
+            stock: 30,
+            category: { name: 'Bebidas' },
+            sensor_type: 'rfid',
+          },
+        ],
+        1,
       ]),
     };
 
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
+    repoMock.query = jest.fn().mockResolvedValue([{ extname: 'unaccent' }]);
 
-    const result = await service.searchByName('agua');
+    const result = await service.searchByName('agua', 20, 0);
     expect(result).toEqual({
       message: 'Búsqueda completada',
+      total: 1,
       results: [
         {
           name: 'Agua natural 1L',
