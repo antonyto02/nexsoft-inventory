@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
@@ -121,9 +125,9 @@ export class ProductsService {
         qb = qb.where('product.stock = 0');
         break;
       case 'low_stock':
-        qb = qb.where('product.stock > 0').andWhere(
-          'product.stock < product.min_stock',
-        );
+        qb = qb
+          .where('product.stock > 0')
+          .andWhere('product.stock < product.min_stock');
         break;
       case 'near_minimum':
         qb = qb
@@ -135,7 +139,11 @@ export class ProductsService {
         break;
     }
 
-    const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
+    const result = await qb
+      .orderBy('product.name', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
 
     const products = result.map((p) => ({
       id: String(p.id),
@@ -185,18 +193,24 @@ export class ProductsService {
     };
   }
 
-  async searchByName(name?: string) {
+  async searchByName(name?: string, limit?: number, offset?: number) {
     if (!name) {
       throw new BadRequestException('El nombre es requerido');
     }
 
-    const result = await this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .where('LOWER(product.name) LIKE LOWER(:name)', { name: `%${name}%` })
-      .andWhere('product.is_active = true')
-      .orderBy('product.name', 'ASC')
-      .getMany();
+    const take = !limit || isNaN(limit) || limit <= 0 ? 20 : limit;
+    const skip = !offset || isNaN(offset) || offset < 0 ? 0 : offset;
+
+    const [result, total] = await this.productRepository
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.category', 'category')
+      .where('unaccent(p.name) ILIKE unaccent(:search)', {
+        search: `%${name}%`,
+      })
+      .andWhere('p.is_active = true')
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
 
     const products = result.map((p) => ({
       name: p.name,
@@ -207,7 +221,10 @@ export class ProductsService {
     }));
 
     return {
-      message: 'Búsqueda completada',
+      message: products.length
+        ? 'Búsqueda completada'
+        : 'No se encontraron resultados',
+      total,
       results: products,
     };
   }
@@ -263,10 +280,8 @@ export class ProductsService {
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.brand !== undefined) product.brand = dto.brand;
     if (dto.description !== undefined) product.description = dto.description;
-    if (dto.stock_minimum !== undefined)
-      product.min_stock = dto.stock_minimum;
-    if (dto.stock_maximum !== undefined)
-      product.max_stock = dto.stock_maximum;
+    if (dto.stock_minimum !== undefined) product.min_stock = dto.stock_minimum;
+    if (dto.stock_maximum !== undefined) product.max_stock = dto.stock_maximum;
     if (dto.image_url !== undefined) product.image_url = dto.image_url;
 
     if (dto.category !== undefined) {

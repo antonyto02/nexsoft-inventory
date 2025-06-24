@@ -18,7 +18,6 @@ import { RfidEntryDto } from './dto/rfid-entry.dto';
 import { AwsS3Service } from './s3.service';
 import { BadRequestException } from '@nestjs/common';
 
-
 @Controller('inventory/products')
 export class ProductsController {
   constructor(
@@ -57,18 +56,19 @@ export class ProductsController {
   }
 
   @Get('search')
-  search(@Query('name') name?: string) {
-    return this.productsService.searchByName(name);
+  search(
+    @Query('name') name?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const offsetNum = offset ? parseInt(offset, 10) : undefined;
+    return this.productsService.searchByName(name, limitNum, offsetNum);
   }
   @Get('upload-url')
-  getUploadUrl(
-    @Query('type') type: string,
-    @Query('ext') ext: string,
-  ) {
+  getUploadUrl(@Query('type') type: string, @Query('ext') ext: string) {
     return this.s3Service.generateSignedUrl(type, ext);
   }
-
-
 
   @Get(':id')
   getOne(@Param('id') id: string) {

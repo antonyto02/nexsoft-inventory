@@ -70,23 +70,28 @@ describe('ProductsService', () => {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([
-        {
-          name: 'Agua natural 1L',
-          image_url: 'url',
-          stock: 30,
-          category: { name: 'Bebidas' },
-          sensor_type: 'rfid',
-        },
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([
+        [
+          {
+            name: 'Agua natural 1L',
+            image_url: 'url',
+            stock: 30,
+            category: { name: 'Bebidas' },
+            sensor_type: 'rfid',
+          },
+        ],
+        1,
       ]),
-    };
+    } as any;
 
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
 
     const result = await service.searchByName('agua');
     expect(result).toEqual({
       message: 'Búsqueda completada',
+      total: 1,
       results: [
         {
           name: 'Agua natural 1L',
@@ -96,6 +101,26 @@ describe('ProductsService', () => {
           sensor_type: 'rfid',
         },
       ],
+    });
+  });
+
+  it('searchByName should handle empty results', async () => {
+    const qb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+    } as any;
+
+    repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
+
+    const result = await service.searchByName('agua');
+    expect(result).toEqual({
+      message: 'No se encontraron resultados',
+      total: 0,
+      results: [],
     });
   });
 
