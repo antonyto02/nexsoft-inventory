@@ -74,6 +74,22 @@ export class InventoryService {
       return result;
     };
 
+    const expiring = takeUnique(
+      expiringEntries.filter((e) => !!e.product),
+      (e) => e.product.id,
+    ).map((e) => ({
+      id: String(e.product.id),
+      name: e.product.name,
+      stock_actual: Number(e.product.stock),
+      expiration_date: e.expiration_date
+        ? new Date(e.expiration_date as unknown as string)
+            .toISOString()
+            .split('T')[0]
+        : undefined,
+      image_url: e.product.image_url,
+      sensor_type: e.product.sensor_type,
+    }));
+
     const out_of_stock = takeUnique(outOfStockProducts, (p) => p.id).map((p) => ({
       id: String(p.id),
       name: p.name,
@@ -89,22 +105,6 @@ export class InventoryService {
       stock_minimum: Number(p.min_stock),
       image_url: p.image_url,
       sensor_type: p.sensor_type,
-    }));
-
-    const expiring = takeUnique(
-      expiringEntries.filter((e) => !!e.product),
-      (e) => e.product.id,
-    ).map((e) => ({
-      id: String(e.product.id),
-      name: e.product.name,
-      stock_actual: Number(e.product.stock),
-      expiration_date: e.expiration_date
-        ? new Date(e.expiration_date as unknown as string)
-            .toISOString()
-            .split('T')[0]
-        : undefined,
-      image_url: e.product.image_url,
-      sensor_type: e.product.sensor_type,
     }));
 
     const near_minimum = takeUnique(nearMinimumProducts, (p) => p.id).map((p) => ({
@@ -132,8 +132,6 @@ export class InventoryService {
       stock_actual: Number(p.stock),
       sensor_type: p.sensor_type,
     }));
-
-    console.error('Expiring mapped:', expiring);
 
     return {
       message: 'Resumen cargado correctamente',
