@@ -160,6 +160,33 @@ export class AwsMqttService implements OnModuleInit {
             .toISOString()
             .split('T')[0]
         : undefined;
+      const payload = {
+        cardData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          ...(expirationDate && { expiration_date: expirationDate }),
+        },
+        detailData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          last_updated: product.updated_at,
+        },
+        movementData: {
+          id: movement.id,
+          date: movement.movement_date.toISOString().split('T')[0],
+          time: movement.movement_date.toISOString().split('T')[1].slice(0, 5),
+          type: movement.type.name,
+          stock_before: Number(movement.previous_quantity),
+          quantity: Number(movement.quantity),
+          stock_after: Number(movement.final_quantity),
+          comment: movement.comment,
+        },
+      };
+
+      console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
+
+      this.rfidGateway.emitProductUpdated(payload);
+
 
       this.rfidGateway.emitProductUpdated({
         cardData: {
