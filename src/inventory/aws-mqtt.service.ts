@@ -10,6 +10,7 @@ import { Product } from './entities/product.entity';
 import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
 import { RfidGateway } from './gateways/rfid.gateway';
+import { getMexicoCityISO, formatMexicoCity } from '../utils/time';
 
 dotenv.config();
 
@@ -140,7 +141,7 @@ export class AwsMqttService implements OnModuleInit {
         previous_quantity: prevQuantity,
         final_quantity: finalQuantity,
         comment: 'Salida',
-        movement_date: new Date(),
+        movement_date: getMexicoCityISO(),
       });
       await this.movementRepository.save(movement);
 
@@ -173,8 +174,7 @@ export class AwsMqttService implements OnModuleInit {
         },
         movementData: {
           id: movement.id,
-          date: movement.movement_date.toISOString().split('T')[0],
-          time: movement.movement_date.toISOString().split('T')[1].slice(0, 5),
+          ...formatMexicoCity(movement.movement_date),
           type: movement.type.name,
           stock_before: Number(movement.previous_quantity),
           quantity: Number(movement.quantity),
@@ -201,8 +201,7 @@ export class AwsMqttService implements OnModuleInit {
         },
         movementData: {
           id: movement.id,
-          date: movement.movement_date.toISOString().split('T')[0],
-          time: movement.movement_date.toISOString().split('T')[1].slice(0, 5),
+          ...formatMexicoCity(movement.movement_date),
           type: movement.type.name,
           stock_before: Number(movement.previous_quantity),
           quantity: Number(movement.quantity),
@@ -234,7 +233,7 @@ export class AwsMqttService implements OnModuleInit {
       quantity: Math.abs(finalQuantity - prevQuantity),
       previous_quantity: prevQuantity,
       final_quantity: finalQuantity,
-      movement_date: new Date(),
+      movement_date: getMexicoCityISO(),
     });
     await this.movementRepository.save(movement);
 
