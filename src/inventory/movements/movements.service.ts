@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
+import { getMexicoCityISO, formatMexicoCity } from '../../utils/time';
 import { Product } from '../entities/product.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
@@ -97,6 +98,7 @@ export class MovementsService {
       previous_quantity: prevQuantity,
       final_quantity: finalQuantity,
       comment: dto.note,
+      movement_date: getMexicoCityISO(),
     });
 
     await this.movementRepository.save(movement);
@@ -126,9 +128,10 @@ export class MovementsService {
     });
 
     const formatted = movements.map((m) => {
+      const { date, time } = formatMexicoCity(m.movement_date);
       const item: any = {
-        date: m.movement_date.toISOString().split('T')[0],
-        time: m.movement_date.toISOString().split('T')[1].slice(0, 5),
+        date,
+        time,
         type: m.type.name,
         stock_before: Number(m.previous_quantity),
         quantity:
