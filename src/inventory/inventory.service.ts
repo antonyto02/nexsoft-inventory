@@ -25,7 +25,7 @@ export class InventoryService {
       .orderBy('product.updated_at', 'DESC')
       .getMany();
 
-    const lowStockProducts = await this.productRepository
+    const belowMinimumProducts = await this.productRepository
       .createQueryBuilder('product')
       .where('product.stock > 0')
       .andWhere('product.stock < product.min_stock')
@@ -36,6 +36,7 @@ export class InventoryService {
       .createQueryBuilder('entry')
       .leftJoinAndSelect('entry.product', 'product')
       .where('entry.expiration_date IS NOT NULL')
+      .andWhere('entry.expiration_date >= :today', { today })
       .andWhere('entry.expiration_date <= :limitDate', { limitDate: sevenDays })
       .andWhere('entry.deleted_at IS NULL')
       .orderBy('entry.expiration_date', 'ASC')
@@ -82,7 +83,7 @@ export class InventoryService {
       sensor_type: p.sensor_type,
     }));
 
-    const low_stock = takeUnique(lowStockProducts, (p) => p.id).map((p) => ({
+    const below_minimum = takeUnique(belowMinimumProducts, (p) => p.id).map((p) => ({
       id: String(p.id),
       name: p.name,
       stock_actual: Number(p.stock),
@@ -97,14 +98,13 @@ export class InventoryService {
     ).map((e) => ({
       id: String(e.product.id),
       name: e.product.name,
-      stock_actual: Number(e.product.stock),
-      expiration_date: e.expiration_date
+      image_url: e.product.image_url,
+      sensor_type: e.product.sensor_type,
+      nearest_expiration: e.expiration_date
         ? new Date(e.expiration_date as unknown as string)
             .toISOString()
             .split('T')[0]
         : undefined,
-      image_url: e.product.image_url,
-      sensor_type: e.product.sensor_type,
     }));
 
     const near_minimum = takeUnique(nearMinimumProducts, (p) => p.id).map((p) => ({
@@ -133,15 +133,13 @@ export class InventoryService {
       sensor_type: p.sensor_type,
     }));
 
-    console.error('Expiring mapped:', expiring);
-
     return {
       message: 'Resumen cargado correctamente',
       out_of_stock,
-      low_stock,
-      expiring,
+      below_minimum,
       near_minimum,
       overstock,
+      expiring,
       all,
     };
   }
