@@ -140,7 +140,11 @@ export class AwsMqttService implements OnModuleInit {
         previous_quantity: prevQuantity,
         final_quantity: finalQuantity,
         comment: 'Salida',
-        movement_date: new Date(),
+        movement_date: new Date(
+          new Date().toLocaleString('en-US', {
+            timeZone: 'America/Mexico_City',
+          }),
+        ),
       });
       await this.movementRepository.save(movement);
 
@@ -234,7 +238,11 @@ export class AwsMqttService implements OnModuleInit {
       quantity: Math.abs(finalQuantity - prevQuantity),
       previous_quantity: prevQuantity,
       final_quantity: finalQuantity,
-      movement_date: new Date(),
+      movement_date: new Date(
+        new Date().toLocaleString('en-US', {
+          timeZone: 'America/Mexico_City',
+        }),
+      ),
     });
     await this.movementRepository.save(movement);
 
