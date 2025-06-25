@@ -149,6 +149,67 @@ export class AwsMqttService implements OnModuleInit {
 
       await this.stockEntryRepository.delete({ id: existing.id });
       console.log(`[RFID] Procesado y eliminado: ${tag}`);
+
+      const remaining = await this.stockEntryRepository.find({
+        where: { product: { id: product.id } },
+        order: { expiration_date: 'ASC' },
+      });
+      const nextEntry = remaining.find((e) => !!e.expiration_date);
+      const expirationDate = nextEntry?.expiration_date
+        ? new Date(nextEntry.expiration_date as unknown as string)
+            .toISOString()
+            .split('T')[0]
+        : undefined;
+      const payload = {
+        cardData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          ...(expirationDate && { expiration_date: expirationDate }),
+        },
+        detailData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          last_updated: product.updated_at,
+        },
+        movementData: {
+          id: movement.id,
+          date: movement.movement_date.toISOString().split('T')[0],
+          time: movement.movement_date.toISOString().split('T')[1].slice(0, 5),
+          type: movement.type.name,
+          stock_before: Number(movement.previous_quantity),
+          quantity: Number(movement.quantity),
+          stock_after: Number(movement.final_quantity),
+          comment: movement.comment,
+        },
+      };
+
+      console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
+
+      this.rfidGateway.emitProductUpdated(payload);
+
+
+      this.rfidGateway.emitProductUpdated({
+        cardData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          ...(expirationDate && { expiration_date: expirationDate }),
+        },
+        detailData: {
+          id: product.id,
+          stock_actual: Number(product.stock),
+          last_updated: product.updated_at,
+        },
+        movementData: {
+          id: movement.id,
+          date: movement.movement_date.toISOString().split('T')[0],
+          time: movement.movement_date.toISOString().split('T')[1].slice(0, 5),
+          type: movement.type.name,
+          stock_before: Number(movement.previous_quantity),
+          quantity: Number(movement.quantity),
+          stock_after: Number(movement.final_quantity),
+          comment: movement.comment,
+        },
+      });
     } else {
       this.rfidGateway.emitTagDetected(tag);
     }
