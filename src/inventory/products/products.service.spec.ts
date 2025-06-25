@@ -192,6 +192,47 @@ describe('ProductsService', () => {
     expect(result).toEqual({ message: 'Producto eliminado correctamente' });
   });
 
+  it("findByStatus 'expiring' should return products with expiration", async () => {
+    const qb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          expiration_date: '2025-06-26',
+          product: {
+            id: 89,
+            name: 'Lata de elotes',
+            image_url: 'img',
+            stock: 1,
+            category: { name: 'Alimentos' },
+            sensor_type: 'rfid',
+          },
+        },
+      ]),
+    } as any;
+    qb.leftJoinAndSelect.mockReturnValue(qb);
+    repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
+
+    const result = await service.findByStatus('expiring', 1, 10);
+
+    expect(result).toEqual({
+      message: 'Productos obtenidos correctamente',
+      products: [
+        {
+          id: '89',
+          name: 'Lata de elotes',
+          image_url: 'img',
+          stock_actual: 1,
+          category: 'Alimentos',
+          sensor_type: 'rfid',
+          expiration_date: '2025-06-26',
+        },
+      ],
+    });
+  });
+
   it('remove should throw if product not found', async () => {
     repoMock.findOne = jest.fn().mockResolvedValue(null);
     await expect(service.remove('10')).rejects.toThrow();

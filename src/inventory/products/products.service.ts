@@ -93,17 +93,29 @@ export class ProductsService {
         })
         .andWhere('entry.deleted_at IS NULL')
         .orderBy('entry.expiration_date', 'ASC')
-        .skip(skip)
-        .take(limit)
         .getMany();
 
-      const products = entries.map((e) => ({
+      const unique: { [key: number]: typeof entries[0] } = {};
+      for (const e of entries) {
+        if (!unique[e.product.id]) {
+          unique[e.product.id] = e;
+        }
+      }
+
+      const paginated = Object.values(unique).slice(skip, skip + limit);
+
+      const products = paginated.map((e) => ({
         id: String(e.product.id),
         name: e.product.name,
         image_url: e.product.image_url,
         stock_actual: Number(e.product.stock),
         category: e.product.category?.name,
         sensor_type: e.product.sensor_type,
+        expiration_date: e.expiration_date
+          ? new Date(e.expiration_date as unknown as string)
+              .toISOString()
+              .split('T')[0]
+          : undefined,
       }));
 
       return {
