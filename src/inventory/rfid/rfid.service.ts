@@ -10,6 +10,7 @@ import { StockEntry } from '../entities/stock-entry.entity';
 import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { RfidEntryItemDto } from '../products/dto/rfid-entry.dto';
+import { getMexicoCityISO } from '../../utils/time';
 
 @Injectable()
 export class RfidService {
@@ -105,6 +106,7 @@ export class RfidService {
         quantity: registered,
         previous_quantity: prevQuantity,
         final_quantity: finalQuantity,
+        movement_date: getMexicoCityISO(),
         comment: 'Registro RFID',
       });
       await this.movementRepository.save(movement);
