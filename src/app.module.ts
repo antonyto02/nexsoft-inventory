@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { InventoryModule } from './inventory/inventory.module';
+import { JwtAuthMiddleware } from './middleware/jwt-auth.middleware';
 
 @Module({
   imports: [
@@ -19,4 +20,8 @@ import { InventoryModule } from './inventory/inventory.module';
     InventoryModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtAuthMiddleware).forRoutes('*');
+  }
+}
