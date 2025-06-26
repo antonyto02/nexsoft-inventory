@@ -241,5 +241,41 @@ export class AwsMqttService implements OnModuleInit {
     await this.productRepository.save(product);
 
     console.log(`[CAMERA] Stock actualizado de ${prevQuantity} a ${finalQuantity}`);
+
+    const remaining = await this.stockEntryRepository.find({
+      where: { product: { id: product.id } },
+      order: { expiration_date: 'ASC' },
+    });
+    const nextEntry = remaining.find((e) => !!e.expiration_date);
+    const expirationDate = nextEntry?.expiration_date
+      ? new Date(nextEntry.expiration_date as unknown as string)
+          .toISOString()
+          .split('T')[0]
+      : undefined;
+
+    const payload = {
+      cardData: {
+        id: product.id,
+        stock_actual: Number(product.stock),
+        ...(expirationDate && { expiration_date: expirationDate }),
+      },
+      detailData: {
+        id: product.id,
+        stock_actual: Number(product.stock),
+        last_updated: product.updated_at,
+      },
+      movementData: {
+        id: movement.id,
+        ...formatMexicoCity(movement.movement_date),
+        type: movement.type.name,
+        stock_before: Number(movement.previous_quantity),
+        quantity: Number(movement.quantity),
+        stock_after: Number(movement.final_quantity),
+        comment: movement.comment,
+      },
+    };
+
+    console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
+    this.rfidGateway.emitProductUpdated(payload);
   }
 }
