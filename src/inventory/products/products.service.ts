@@ -241,6 +241,7 @@ export class ProductsService {
       .getManyAndCount();
 
     const products = result.map((p) => ({
+      id: String(p.id),
       name: p.name,
       image_url: p.image_url,
       stock_actual: Number(p.stock),

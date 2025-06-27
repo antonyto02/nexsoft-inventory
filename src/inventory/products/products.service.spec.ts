@@ -76,6 +76,7 @@ describe('ProductsService', () => {
       getManyAndCount: jest.fn().mockResolvedValue([
         [
           {
+            id: 5,
             name: 'Agua natural 1L',
             image_url: 'url',
             stock: 30,
@@ -96,6 +97,7 @@ describe('ProductsService', () => {
       total: 1,
       results: [
         {
+          id: '5',
           name: 'Agua natural 1L',
           image_url: 'url',
           stock_actual: 30,
