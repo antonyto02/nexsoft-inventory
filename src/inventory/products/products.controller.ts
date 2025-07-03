@@ -11,7 +11,10 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { MovementsService } from '../movements/movements.service';
+import {
+  MovementsService,
+  FormattedMovement,
+} from '../movements/movements.service';
 import { CreateMovementDto } from '../movements/dto/create-movement.dto';
 import { RfidService } from '../rfid/rfid.service';
 import { RfidEntryDto } from './dto/rfid-entry.dto';
@@ -108,7 +111,10 @@ export class ProductsController {
   }
 
   @Get(':id/movements')
-  getMovements(@Param('id') id: string) {
+  getMovements(@Param('id') id: string): Promise<{
+    message: string;
+    movements: FormattedMovement[];
+  }> {
     return this.movementsService.findByProduct(id);
   }
 

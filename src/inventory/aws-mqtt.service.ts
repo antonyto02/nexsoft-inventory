@@ -9,8 +9,16 @@ import { StockEntry } from './entities/stock-entry.entity';
 import { Product } from './entities/product.entity';
 import { Movement } from './entities/movement.entity';
 import { MovementType } from './entities/movement-type.entity';
-import { RfidGateway } from './gateways/rfid.gateway';
+import { RfidGateway, ProductUpdatePayload } from './gateways/rfid.gateway';
 import { getMexicoCityISO, formatMexicoCity } from '../utils/time';
+
+interface RfidMessage {
+  rfid_tag?: string;
+}
+
+interface CameraMessage {
+  botellas?: number;
+}
 
 dotenv.config();
 
@@ -118,7 +126,7 @@ export class AwsMqttService implements OnModuleInit {
     });
   }
 
-  private async processRfid(parsed: any) {
+  private async processRfid(parsed: RfidMessage) {
     const tag = parsed?.rfid_tag?.trim();
     if (!tag) return;
 
@@ -161,7 +169,7 @@ export class AwsMqttService implements OnModuleInit {
             .toISOString()
             .split('T')[0]
         : undefined;
-      const payload = {
+      const payload: ProductUpdatePayload = {
         cardData: {
           id: product.id,
           stock_actual: Number(product.stock),
@@ -214,7 +222,7 @@ export class AwsMqttService implements OnModuleInit {
     }
   }
 
-  private async processCamera(parsed: any) {
+  private async processCamera(parsed: CameraMessage) {
     const bottles = parsed?.botellas;
     if (typeof bottles !== 'number') return;
 
@@ -253,7 +261,7 @@ export class AwsMqttService implements OnModuleInit {
           .split('T')[0]
       : undefined;
 
-    const payload = {
+    const payload: ProductUpdatePayload = {
       cardData: {
         id: product.id,
         stock_actual: Number(product.stock),

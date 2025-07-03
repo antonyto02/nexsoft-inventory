@@ -8,6 +8,21 @@ import { StockEntry } from '../entities/stock-entry.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
+interface SearchResponse {
+  message: string;
+  total: number;
+  results: {
+    id: string;
+    name: string;
+    image_url: string | null;
+    stock_actual: number;
+    category?: string;
+    sensor_type: string;
+    expiration_date?: string;
+  }[];
+  warning?: string;
+}
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -107,7 +122,7 @@ export class ProductsService {
       const products = paginated.map((e) => ({
         id: String(e.product.id),
         name: e.product.name,
-        image_url: e.product.image_url,
+        image_url: e.product.image_url ?? null,
         stock_actual: Number(e.product.stock),
         category: e.product.category?.name,
         sensor_type: e.product.sensor_type,
@@ -152,7 +167,7 @@ export class ProductsService {
     const products = result.map((p) => ({
       id: String(p.id),
       name: p.name,
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       stock_actual: Number(p.stock),
       category: p.category?.name,
       sensor_type: p.sensor_type,
@@ -185,7 +200,7 @@ export class ProductsService {
     const products = result.map((p) => ({
       id: String(p.id),
       name: p.name,
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       stock_actual: Number(p.stock),
       category: p.category?.name,
       sensor_type: p.sensor_type,
@@ -208,7 +223,7 @@ export class ProductsService {
     }
   }
 
-  async searchByName(name?: string, limit = 20, offset = 0) {
+  async searchByName(name?: string, limit = 20, offset = 0): Promise<SearchResponse> {
     if (!name || name.length < 2) {
       throw new BadRequestException(
         "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
@@ -243,13 +258,13 @@ export class ProductsService {
     const products = result.map((p) => ({
       id: String(p.id),
       name: p.name,
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       stock_actual: Number(p.stock),
       category: p.category?.name,
       sensor_type: p.sensor_type,
     }));
 
-    const response: any = {
+    const response: SearchResponse = {
       message: 'Búsqueda completada',
       total,
       results: products,
@@ -282,7 +297,7 @@ export class ProductsService {
       product: {
         id: String(product.id),
         name: product.name,
-        image_url: product.image_url,
+        image_url: product.image_url ?? null,
         description: product.description,
         category: product.category?.name,
         brand: product.brand,

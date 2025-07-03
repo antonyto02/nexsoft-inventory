@@ -171,7 +171,7 @@ describe('ProductsService', () => {
       category: 2,
     });
 
-    expect(repoMock.save).toHaveBeenCalled();
+    expect(() => repoMock.save).toHaveBeenCalled();
     expect(product.name).toBe('NewName');
     expect(product.category).toBe(cat);
   });
@@ -188,7 +188,7 @@ describe('ProductsService', () => {
 
     const result = await service.remove('4');
 
-    expect(repoMock.save).toHaveBeenCalledWith(product);
+    expect(() => repoMock.save).toHaveBeenCalledWith(product);
     expect(product.is_active).toBe(false);
     expect(product.deleted_at).toBeInstanceOf(Date);
     expect(result).toEqual({ message: 'Producto eliminado correctamente' });

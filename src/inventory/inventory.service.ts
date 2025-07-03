@@ -86,7 +86,7 @@ export class InventoryService {
             .toISOString()
             .split('T')[0]
         : undefined,
-      image_url: e.product.image_url,
+      image_url: e.product.image_url ?? null,
       sensor_type: e.product.sensor_type,
     }));
 
@@ -94,7 +94,7 @@ export class InventoryService {
       id: String(p.id),
       name: p.name,
       stock_actual: Number(p.stock),
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       sensor_type: p.sensor_type,
     }));
 
@@ -103,7 +103,7 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_minimum: Number(p.min_stock),
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       sensor_type: p.sensor_type,
     }));
 
@@ -112,7 +112,7 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_minimum: Number(p.min_stock),
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       sensor_type: p.sensor_type,
     }));
 
@@ -121,14 +121,14 @@ export class InventoryService {
       name: p.name,
       stock_actual: Number(p.stock),
       stock_maximum: Number(p.max_stock),
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       sensor_type: p.sensor_type,
     }));
 
     const all = takeUnique(allProducts, (p) => p.id).map((p) => ({
       id: String(p.id),
       name: p.name,
-      image_url: p.image_url,
+      image_url: p.image_url ?? null,
       stock_actual: Number(p.stock),
       sensor_type: p.sensor_type,
     }));
