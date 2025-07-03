@@ -11,6 +11,16 @@ import { Movement } from '../entities/movement.entity';
 import { MovementType } from '../entities/movement-type.entity';
 import { CreateMovementDto } from './dto/create-movement.dto';
 
+interface FormattedMovement {
+  date: string;
+  time: string;
+  type: string;
+  stock_before: number;
+  quantity: number;
+  stock_after: number;
+  comment?: string;
+}
+
 @Injectable()
 export class MovementsService {
   constructor(
@@ -127,9 +137,9 @@ export class MovementsService {
       relations: ['type'],
     });
 
-    const formatted = movements.map((m) => {
+    const formatted: FormattedMovement[] = movements.map((m) => {
       const { date, time } = formatMexicoCity(m.movement_date);
-      const item: any = {
+      const item: FormattedMovement = {
         date,
         time,
         type: m.type.name,

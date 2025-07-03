@@ -5,6 +5,7 @@ import { Product } from '../entities/product.entity';
 import { Category } from '../entities/category.entity';
 import { Unit } from '../entities/unit.entity';
 import { StockEntry } from '../entities/stock-entry.entity';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 const repoMock = {};
 
@@ -45,7 +46,7 @@ describe('ProductsService', () => {
             orderBy: () => ({
               skip: () => ({
                 take: () => ({
-                  getMany: async () => [],
+                  getMany: () => [],
                 }),
               }),
             }),
@@ -62,7 +63,7 @@ describe('ProductsService', () => {
   });
 
   it('should throw error when name is missing', async () => {
-    await expect(service.searchByName(undefined as any, 20, 0)).rejects.toThrow();
+    await expect(service.searchByName(undefined, 20, 0)).rejects.toThrow();
   });
 
   it('searchByName should return mapped products', async () => {
@@ -178,11 +179,11 @@ describe('ProductsService', () => {
 
   it('update should throw if product not found', async () => {
     repoMock.findOne = jest.fn().mockResolvedValue(null);
-    await expect(service.update('5', {} as any)).rejects.toThrow();
+    await expect(service.update('5', {} as unknown as UpdateProductDto)).rejects.toThrow();
   });
 
   it('remove should deactivate product', async () => {
-    const product = { id: 4, is_active: true } as any;
+    const product = { id: 4, is_active: true } as unknown as Product;
     repoMock.findOne = jest.fn().mockResolvedValue(product);
     repoMock.save = jest.fn().mockResolvedValue(product);
 
@@ -195,7 +196,7 @@ describe('ProductsService', () => {
   });
 
   it("findByStatus 'expiring' should return products with expiration", async () => {
-    const qb = {
+    const qb: Record<string, jest.Mock> = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
@@ -213,8 +214,8 @@ describe('ProductsService', () => {
           },
         },
       ]),
-    } as any;
-    qb.leftJoinAndSelect.mockReturnValue(qb);
+    };
+    (qb.leftJoinAndSelect as jest.Mock).mockReturnValue(qb);
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
 
     const result = await service.findByStatus('expiring', 1, 10);

@@ -5,6 +5,12 @@ import * as mqtt from 'mqtt';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+
+interface MqttMessage {
+  rfid_tag?: string;
+  botellas?: number;
+  [key: string]: unknown;
+}
 import { StockEntry } from './entities/stock-entry.entity';
 import { Product } from './entities/product.entity';
 import { Movement } from './entities/movement.entity';
@@ -102,23 +108,25 @@ export class AwsMqttService implements OnModuleInit {
       console.error('[MQTT] 🚨 Error:', error);
     });
 
-    this.client.on('message', async (topic, message) => {
-      const data = message.toString();
-      console.log(`[MQTT] 📩 ${topic}: ${data}`);
-      try {
-        const parsed = JSON.parse(data);
-        if (topic === 'nexsoft/inventory/rfid') {
-          await this.processRfid(parsed);
-        } else if (topic === 'nexsoft/inventory/camera') {
-          await this.processCamera(parsed);
+    this.client.on('message', (topic, message) => {
+      void (async () => {
+        const data = message.toString();
+        console.log(`[MQTT] 📩 ${topic}: ${data}`);
+        try {
+          const parsed = JSON.parse(data) as MqttMessage;
+          if (topic === 'nexsoft/inventory/rfid') {
+            await this.processRfid(parsed);
+          } else if (topic === 'nexsoft/inventory/camera') {
+            await this.processCamera(parsed);
+          }
+        } catch (err) {
+          console.error('[MQTT] ❌ Error procesando mensaje:', err);
         }
-      } catch (err) {
-        console.error('[MQTT] ❌ Error procesando mensaje:', err);
-      }
+      })();
     });
   }
 
-  private async processRfid(parsed: any) {
+  private async processRfid(parsed: MqttMessage) {
     const tag = parsed?.rfid_tag?.trim();
     if (!tag) return;
 
@@ -214,7 +222,7 @@ export class AwsMqttService implements OnModuleInit {
     }
   }
 
-  private async processCamera(parsed: any) {
+  private async processCamera(parsed: MqttMessage) {
     const bottles = parsed?.botellas;
     if (typeof bottles !== 'number') return;
 

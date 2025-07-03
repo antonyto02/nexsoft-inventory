@@ -8,6 +8,22 @@ import { StockEntry } from '../entities/stock-entry.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
+interface SearchResultItem {
+  id: string;
+  name: string;
+  image_url: string | null;
+  stock_actual: number;
+  category?: string;
+  sensor_type: string;
+}
+
+interface SearchByNameResponse {
+  message: string;
+  total: number;
+  results: SearchResultItem[];
+  warning?: string;
+}
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -208,7 +224,7 @@ export class ProductsService {
     }
   }
 
-  async searchByName(name?: string, limit = 20, offset = 0) {
+  async searchByName(name?: string, limit = 20, offset = 0): Promise<SearchByNameResponse> {
     if (!name || name.length < 2) {
       throw new BadRequestException(
         "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
@@ -249,7 +265,7 @@ export class ProductsService {
       sensor_type: p.sensor_type,
     }));
 
-    const response: any = {
+    const response: SearchByNameResponse = {
       message: 'Búsqueda completada',
       total,
       results: products,

@@ -37,7 +37,7 @@ describe('ProductsController', () => {
     const svc = controller['productsService'];
     svc.findById = jest.fn().mockResolvedValue('result');
     const res = await controller.getOne('1');
-    expect(svc.findById).toHaveBeenCalledWith('1');
+    expect((svc.findById as jest.Mock)).toHaveBeenCalledWith('1');
     expect(res).toBe('result');
   });
 
@@ -45,7 +45,7 @@ describe('ProductsController', () => {
     const svc = controller['movementsService'];
     svc.findByProduct = jest.fn().mockResolvedValue('data');
     const res = await controller.getMovements('5');
-    expect(svc.findByProduct).toHaveBeenCalledWith('5');
+    expect((svc.findByProduct as jest.Mock)).toHaveBeenCalledWith('5');
     expect(res).toBe('data');
   });
 
@@ -53,15 +53,15 @@ describe('ProductsController', () => {
     const svc = controller['productsService'];
     svc.remove = jest.fn().mockResolvedValue('done');
     const res = await controller.remove('2');
-    expect(svc.remove).toHaveBeenCalledWith('2');
+    expect((svc.remove as jest.Mock)).toHaveBeenCalledWith('2');
     expect(res).toBe('done');
   });
 
   it('search should call service with params', async () => {
     const svc = controller['productsService'];
     svc.searchByName = jest.fn().mockResolvedValue('data');
-    const res = await controller.search('agua', '5', '10');
-    expect(svc.searchByName).toHaveBeenCalledWith('agua', 5, 10);
+    const res = (await controller.search('agua', '5', '10')) as unknown;
+    expect((svc.searchByName as jest.Mock)).toHaveBeenCalledWith('agua', 5, 10);
     expect(res).toBe('data');
   });
 });

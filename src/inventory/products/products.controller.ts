@@ -61,7 +61,7 @@ export class ProductsController {
     @Query('name') name?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ) {
+  ): Promise<unknown> {
     if (!name || name.length < 2) {
       throw new BadRequestException(
         "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
@@ -73,7 +73,7 @@ export class ProductsController {
 
     try {
       return await this.productsService.searchByName(name, limitNum, offsetNum);
-    } catch (err) {
+    } catch {
       throw new InternalServerErrorException();
     }
   }
