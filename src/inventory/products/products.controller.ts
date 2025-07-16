@@ -7,7 +7,9 @@ import {
   Param,
   Patch,
   Delete,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -38,10 +40,17 @@ export class ProductsController {
     @Query('status') status: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Req() req?: Request,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    return this.productsService.findByStatus(status, pageNum, limitNum);
+    const companyId = (req as any)?.user?.company_id;
+    return this.productsService.findByStatus(
+      status,
+      pageNum,
+      limitNum,
+      Number(companyId),
+    );
   }
 
   @Get('general')
@@ -49,11 +58,18 @@ export class ProductsController {
     @Query('category') category?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Req() req?: Request,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
     const categoryId = category ? parseInt(category, 10) : undefined;
-    return this.productsService.findGeneral(categoryId, pageNum, limitNum);
+    const companyId = (req as any)?.user?.company_id;
+    return this.productsService.findGeneral(
+      categoryId,
+      pageNum,
+      limitNum,
+      Number(companyId),
+    );
   }
 
   @Get('search')

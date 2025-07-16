@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Patch, BadRequestException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  BadRequestException,
+  Req,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { InventoryService } from './inventory.service';
 import { RfidService } from './rfid/rfid.service';
 
@@ -10,8 +18,9 @@ export class InventoryController {
   ) {}
 
   @Get('home')
-  getHome() {
-    return this.inventoryService.getHomeSummary();
+  getHome(@Req() req: Request) {
+    const companyId = (req as any).user?.company_id;
+    return this.inventoryService.getHomeSummary(Number(companyId));
   }
 
   @Patch('rfid-mode')

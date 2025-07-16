@@ -14,7 +14,7 @@ export class InventoryService {
     private readonly stockEntryRepository: Repository<StockEntry>,
   ) {}
 
-  async getHomeSummary() {
+  async getHomeSummary(companyId: number) {
     const limit = 5;
     const today = new Date();
     const sevenDays = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -22,6 +22,7 @@ export class InventoryService {
     const outOfStockProducts = await this.productRepository
       .createQueryBuilder('product')
       .where('product.stock = 0')
+      .andWhere('product.company_id = :companyId', { companyId })
       .orderBy('product.updated_at', 'DESC')
       .getMany();
 
@@ -29,6 +30,7 @@ export class InventoryService {
       .createQueryBuilder('product')
       .where('product.stock > 0')
       .andWhere('product.stock < product.min_stock')
+      .andWhere('product.company_id = :companyId', { companyId })
       .orderBy('product.stock', 'ASC')
       .getMany();
 
@@ -38,6 +40,7 @@ export class InventoryService {
       .where('entry.expiration_date IS NOT NULL')
       .andWhere('entry.expiration_date <= :limitDate', { limitDate: sevenDays })
       .andWhere('entry.deleted_at IS NULL')
+      .andWhere('product.company_id = :companyId', { companyId })
       .orderBy('entry.expiration_date', 'ASC')
       .getMany();
 
@@ -45,17 +48,20 @@ export class InventoryService {
       .createQueryBuilder('product')
       .where('product.stock >= product.min_stock')
       .andWhere('product.stock <= product.min_stock + 1')
+      .andWhere('product.company_id = :companyId', { companyId })
       .orderBy('product.stock - product.min_stock', 'ASC')
       .getMany();
 
     const overstockProducts = await this.productRepository
       .createQueryBuilder('product')
       .where('product.stock > product.max_stock')
+      .andWhere('product.company_id = :companyId', { companyId })
       .orderBy('product.stock - product.max_stock', 'DESC')
       .getMany();
 
     const allProducts = await this.productRepository
       .createQueryBuilder('product')
+      .where('product.company_id = :companyId', { companyId })
       .orderBy('product.name', 'ASC')
       .getMany();
 

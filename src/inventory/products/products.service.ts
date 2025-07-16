@@ -60,7 +60,12 @@ export class ProductsService {
     };
   }
 
-  async findByStatus(status: string, page = 1, limit = 10) {
+  async findByStatus(
+    status: string,
+    page = 1,
+    limit = 10,
+    companyId?: number,
+  ) {
     if (status === 'all') {
       throw new BadRequestException(
         "El estado 'all' no es válido para este endpoint.",
@@ -92,6 +97,7 @@ export class ProductsService {
           limitDate: sevenDays,
         })
         .andWhere('entry.deleted_at IS NULL')
+        .andWhere('product.company_id = :companyId', { companyId })
         .orderBy('entry.expiration_date', 'ASC')
         .getMany();
 
@@ -126,24 +132,25 @@ export class ProductsService {
 
     let qb = this.productRepository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category');
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.company_id = :companyId', { companyId });
 
     switch (status) {
       case 'out_of_stock':
-        qb = qb.where('product.stock = 0');
+        qb = qb.andWhere('product.stock = 0');
         break;
       case 'low_stock':
-        qb = qb.where('product.stock > 0').andWhere(
-          'product.stock < product.min_stock',
-        );
+        qb = qb
+          .andWhere('product.stock > 0')
+          .andWhere('product.stock < product.min_stock');
         break;
       case 'near_minimum':
         qb = qb
-          .where('product.stock >= product.min_stock')
+          .andWhere('product.stock >= product.min_stock')
           .andWhere('product.stock <= product.min_stock + 1');
         break;
       case 'overstock':
-        qb = qb.where('product.stock > product.max_stock');
+        qb = qb.andWhere('product.stock > product.max_stock');
         break;
     }
 
@@ -164,13 +171,19 @@ export class ProductsService {
     };
   }
 
-  async findGeneral(categoryId?: number, page = 1, limit = 10) {
+  async findGeneral(
+    categoryId?: number,
+    page = 1,
+    limit = 10,
+    companyId?: number,
+  ) {
     const skip = (page - 1) * limit;
 
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      .where('product.is_active = true');
+      .where('product.is_active = true')
+      .andWhere('product.company_id = :companyId', { companyId });
 
     if (categoryId) {
       qb = qb.andWhere('category.id = :categoryId', { categoryId });
