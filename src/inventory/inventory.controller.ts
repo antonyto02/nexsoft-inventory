@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Patch, BadRequestException, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  BadRequestException,
+  UnauthorizedException,
+  Req,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { InventoryService } from './inventory.service';
 import { RfidService } from './rfid/rfid.service';
@@ -12,7 +20,11 @@ export class InventoryController {
 
   @Get('home')
   getHome(@Req() req: Request) {
-    const companyId = (req as any).user.company_id;
+    const companyId = (req as any).user?.company_id;
+    console.log('company_id del usuario:', companyId);
+    if (!companyId) {
+      throw new UnauthorizedException('Falta company_id en el token');
+    }
     return this.inventoryService.getHomeSummary(companyId);
   }
 

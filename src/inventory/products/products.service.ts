@@ -61,7 +61,7 @@ export class ProductsService {
     };
   }
 
-  async findByStatus(companyId: string, status: string, page = 1, limit = 10) {
+  async findByStatus(companyId: string | undefined, status: string, page = 1, limit = 10) {
     if (status === 'all') {
       throw new BadRequestException(
         "El estado 'all' no es válido para este endpoint.",
@@ -84,7 +84,7 @@ export class ProductsService {
 
     if (status === 'expiring') {
       const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const entries = await this.stockEntryRepository
+      const expiringQb = this.stockEntryRepository
         .createQueryBuilder('entry')
         .leftJoinAndSelect('entry.product', 'product')
         .leftJoinAndSelect('product.category', 'category')
@@ -92,8 +92,11 @@ export class ProductsService {
         .andWhere('entry.expiration_date <= :limitDate', {
           limitDate: sevenDays,
         })
-        .andWhere('entry.deleted_at IS NULL')
-        .andWhere('product.company_id = :companyId', { companyId })
+        .andWhere('entry.deleted_at IS NULL');
+      if (companyId) {
+        expiringQb.andWhere('product.company_id = :companyId', { companyId });
+      }
+      const entries = await expiringQb
         .orderBy('entry.expiration_date', 'ASC')
         .getMany();
 
@@ -149,7 +152,9 @@ export class ProductsService {
         break;
     }
 
-    qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
 
     const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
 
@@ -169,7 +174,7 @@ export class ProductsService {
   }
 
   async findGeneral(
-    companyId: string,
+    companyId: string | undefined,
     categoryId?: number,
     page = 1,
     limit = 10,
@@ -179,8 +184,10 @@ export class ProductsService {
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      .where('product.is_active = true')
-      .andWhere('product.company_id = :companyId', { companyId });
+      .where('product.is_active = true');
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
 
     if (categoryId) {
       qb = qb.andWhere('category.id = :categoryId', { categoryId });
@@ -219,7 +226,7 @@ export class ProductsService {
   }
 
   async searchByName(
-    companyId: string,
+    companyId: string | undefined,
     name?: string,
     limit = 20,
     offset = 0,
@@ -236,8 +243,10 @@ export class ProductsService {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .where('product.is_active = true')
-      .andWhere('product.deleted_at IS NULL')
-      .andWhere('product.company_id = :companyId', { companyId });
+      .andWhere('product.deleted_at IS NULL');
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
 
     const searchTerm = `%${name}%`;
 
