@@ -30,11 +30,11 @@ describe('ProductsService', () => {
   });
 
   it("should throw error when status is 'all'", async () => {
-    await expect(service.findByStatus('all', 1, 10)).rejects.toThrow();
+    await expect(service.findByStatus('c1', 'all', 1, 10)).rejects.toThrow();
   });
 
   it('should throw error when status is invalid', async () => {
-    await expect(service.findByStatus('invalid', 1, 10)).rejects.toThrow();
+    await expect(service.findByStatus('c1', 'invalid', 1, 10)).rejects.toThrow();
   });
 
   it('findGeneral should be defined', async () => {
@@ -54,7 +54,7 @@ describe('ProductsService', () => {
       }),
     });
 
-    const result = await service.findGeneral(undefined, 1, 10);
+    const result = await service.findGeneral('c1', undefined, 1, 10);
     expect(result).toEqual({
       message: 'Productos obtenidos correctamente',
       products: [],
@@ -217,7 +217,7 @@ describe('ProductsService', () => {
     qb.leftJoinAndSelect.mockReturnValue(qb);
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
 
-    const result = await service.findByStatus('expiring', 1, 10);
+    const result = await service.findByStatus('c1', 'expiring', 1, 10);
 
     expect(result).toEqual({
       message: 'Productos obtenidos correctamente',

@@ -60,7 +60,7 @@ export class ProductsService {
     };
   }
 
-  async findByStatus(status: string, page = 1, limit = 10) {
+  async findByStatus(companyId: string, status: string, page = 1, limit = 10) {
     if (status === 'all') {
       throw new BadRequestException(
         "El estado 'all' no es válido para este endpoint.",
@@ -92,6 +92,7 @@ export class ProductsService {
           limitDate: sevenDays,
         })
         .andWhere('entry.deleted_at IS NULL')
+        .andWhere('product.company_id = :companyId', { companyId })
         .orderBy('entry.expiration_date', 'ASC')
         .getMany();
 
@@ -147,6 +148,8 @@ export class ProductsService {
         break;
     }
 
+    qb = qb.andWhere('product.company_id = :companyId', { companyId });
+
     const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
 
     const products = result.map((p) => ({
@@ -164,13 +167,19 @@ export class ProductsService {
     };
   }
 
-  async findGeneral(categoryId?: number, page = 1, limit = 10) {
+  async findGeneral(
+    companyId: string,
+    categoryId?: number,
+    page = 1,
+    limit = 10,
+  ) {
     const skip = (page - 1) * limit;
 
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
-      .where('product.is_active = true');
+      .where('product.is_active = true')
+      .andWhere('product.company_id = :companyId', { companyId });
 
     if (categoryId) {
       qb = qb.andWhere('category.id = :categoryId', { categoryId });
