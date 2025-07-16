@@ -30,11 +30,11 @@ describe('ProductsService', () => {
   });
 
   it("should throw error when status is 'all'", async () => {
-    await expect(service.findByStatus('all', 1, 10)).rejects.toThrow();
+    await expect(service.findByStatus('c1', 'all', 1, 10)).rejects.toThrow();
   });
 
   it('should throw error when status is invalid', async () => {
-    await expect(service.findByStatus('invalid', 1, 10)).rejects.toThrow();
+    await expect(service.findByStatus('c1', 'invalid', 1, 10)).rejects.toThrow();
   });
 
   it('findGeneral should be defined', async () => {
@@ -54,7 +54,7 @@ describe('ProductsService', () => {
       }),
     });
 
-    const result = await service.findGeneral(undefined, 1, 10);
+    const result = await service.findGeneral('c1', undefined, 1, 10);
     expect(result).toEqual({
       message: 'Productos obtenidos correctamente',
       products: [],
@@ -62,7 +62,9 @@ describe('ProductsService', () => {
   });
 
   it('should throw error when name is missing', async () => {
-    await expect(service.searchByName(undefined as any, 20, 0)).rejects.toThrow();
+    await expect(
+      service.searchByName('c1', undefined as any, 20, 0),
+    ).rejects.toThrow();
   });
 
   it('searchByName should return mapped products', async () => {
@@ -91,7 +93,7 @@ describe('ProductsService', () => {
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
     repoMock.query = jest.fn().mockResolvedValue([{ extname: 'unaccent' }]);
 
-    const result = await service.searchByName('agua', 20, 0);
+    const result = await service.searchByName('c1', 'agua', 20, 0);
     expect(result).toEqual({
       message: 'Búsqueda completada',
       total: 1,
@@ -217,7 +219,7 @@ describe('ProductsService', () => {
     qb.leftJoinAndSelect.mockReturnValue(qb);
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
 
-    const result = await service.findByStatus('expiring', 1, 10);
+    const result = await service.findByStatus('c1', 'expiring', 1, 10);
 
     expect(result).toEqual({
       message: 'Productos obtenidos correctamente',

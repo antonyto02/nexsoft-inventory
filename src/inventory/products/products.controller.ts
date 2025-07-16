@@ -7,7 +7,9 @@ import {
   Param,
   Patch,
   Delete,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -16,7 +18,11 @@ import { CreateMovementDto } from '../movements/dto/create-movement.dto';
 import { RfidService } from '../rfid/rfid.service';
 import { RfidEntryDto } from './dto/rfid-entry.dto';
 import { AwsS3Service } from './s3.service';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 
 @Controller('inventory/products')
@@ -29,8 +35,13 @@ export class ProductsController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  create(@Body() dto: CreateProductDto, @Req() req: Request) {
+    const companyId = (req as any).user?.companyId;
+    console.log('company_id del usuario:', companyId);
+    if (!companyId) {
+      throw new UnauthorizedException('Falta company_id en el token');
+    }
+    return this.productsService.create(companyId, dto);
   }
 
   @Get()
@@ -38,10 +49,16 @@ export class ProductsController {
     @Query('status') status: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Req() req?: Request,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    return this.productsService.findByStatus(status, pageNum, limitNum);
+    const companyId = (req as any).user?.companyId;
+    console.log('company_id del usuario:', companyId);
+    if (!companyId) {
+      throw new UnauthorizedException('Falta company_id en el token');
+    }
+    return this.productsService.findByStatus(companyId, status, pageNum, limitNum);
   }
 
   @Get('general')
@@ -49,11 +66,17 @@ export class ProductsController {
     @Query('category') category?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Req() req?: Request,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
     const categoryId = category ? parseInt(category, 10) : undefined;
-    return this.productsService.findGeneral(categoryId, pageNum, limitNum);
+    const companyId = (req as any).user?.companyId;
+    console.log('company_id del usuario:', companyId);
+    if (!companyId) {
+      throw new UnauthorizedException('Falta company_id en el token');
+    }
+    return this.productsService.findGeneral(companyId, categoryId, pageNum, limitNum);
   }
 
   @Get('search')
@@ -61,6 +84,7 @@ export class ProductsController {
     @Query('name') name?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Req() req?: Request,
   ) {
     if (!name || name.length < 2) {
       throw new BadRequestException(
@@ -71,8 +95,19 @@ export class ProductsController {
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
+    const companyId = (req as any).user?.companyId;
+    console.log('company_id del usuario:', companyId);
+    if (!companyId) {
+      throw new UnauthorizedException('Falta company_id en el token');
+    }
+
     try {
-      return await this.productsService.searchByName(name, limitNum, offsetNum);
+      return await this.productsService.searchByName(
+        companyId,
+        name,
+        limitNum,
+        offsetNum,
+      );
     } catch (err) {
       throw new InternalServerErrorException();
     }

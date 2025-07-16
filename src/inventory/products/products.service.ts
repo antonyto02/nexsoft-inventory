@@ -21,7 +21,7 @@ export class ProductsService {
     private readonly stockEntryRepository: Repository<StockEntry>,
   ) {}
 
-  async create(dto: CreateProductDto) {
+  async create(companyId: string, dto: CreateProductDto) {
     const allowedSensorTypes = ['manual', 'rfid', 'weight', 'camera'];
     if (!allowedSensorTypes.includes(dto.sensor_type)) {
       throw new BadRequestException('Invalid sensor type');
@@ -42,6 +42,7 @@ export class ProductsService {
     }
 
     const product = this.productRepository.create({
+      company_id: companyId,
       name: dto.name,
       brand: dto.brand,
       description: dto.description,
@@ -60,7 +61,7 @@ export class ProductsService {
     };
   }
 
-  async findByStatus(status: string, page = 1, limit = 10) {
+  async findByStatus(companyId: string | undefined, status: string, page = 1, limit = 10) {
     if (status === 'all') {
       throw new BadRequestException(
         "El estado 'all' no es válido para este endpoint.",
@@ -83,7 +84,7 @@ export class ProductsService {
 
     if (status === 'expiring') {
       const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const entries = await this.stockEntryRepository
+      const expiringQb = this.stockEntryRepository
         .createQueryBuilder('entry')
         .leftJoinAndSelect('entry.product', 'product')
         .leftJoinAndSelect('product.category', 'category')
@@ -91,7 +92,11 @@ export class ProductsService {
         .andWhere('entry.expiration_date <= :limitDate', {
           limitDate: sevenDays,
         })
-        .andWhere('entry.deleted_at IS NULL')
+        .andWhere('entry.deleted_at IS NULL');
+      if (companyId) {
+        expiringQb.andWhere('product.company_id = :companyId', { companyId });
+      }
+      const entries = await expiringQb
         .orderBy('entry.expiration_date', 'ASC')
         .getMany();
 
@@ -147,6 +152,10 @@ export class ProductsService {
         break;
     }
 
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
+
     const result = await qb.orderBy('product.name', 'ASC').skip(skip).take(limit).getMany();
 
     const products = result.map((p) => ({
@@ -164,13 +173,21 @@ export class ProductsService {
     };
   }
 
-  async findGeneral(categoryId?: number, page = 1, limit = 10) {
+  async findGeneral(
+    companyId: string | undefined,
+    categoryId?: number,
+    page = 1,
+    limit = 10,
+  ) {
     const skip = (page - 1) * limit;
 
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .where('product.is_active = true');
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
 
     if (categoryId) {
       qb = qb.andWhere('category.id = :categoryId', { categoryId });
@@ -208,7 +225,12 @@ export class ProductsService {
     }
   }
 
-  async searchByName(name?: string, limit = 20, offset = 0) {
+  async searchByName(
+    companyId: string | undefined,
+    name?: string,
+    limit = 20,
+    offset = 0,
+  ) {
     if (!name || name.length < 2) {
       throw new BadRequestException(
         "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
@@ -222,6 +244,9 @@ export class ProductsService {
       .leftJoinAndSelect('product.category', 'category')
       .where('product.is_active = true')
       .andWhere('product.deleted_at IS NULL');
+    if (companyId) {
+      qb = qb.andWhere('product.company_id = :companyId', { companyId });
+    }
 
     const searchTerm = `%${name}%`;
 
