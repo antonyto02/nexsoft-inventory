@@ -14,50 +14,71 @@ export class InventoryService {
     private readonly stockEntryRepository: Repository<StockEntry>,
   ) {}
 
-  async getHomeSummary() {
+  async getHomeSummary(companyId?: string) {
     const limit = 5;
     const today = new Date();
     const sevenDays = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const outOfStockProducts = await this.productRepository
+    const outOfStockQb = this.productRepository
       .createQueryBuilder('product')
-      .where('product.stock = 0')
+      .where('product.stock = 0');
+    if (companyId) {
+      outOfStockQb.andWhere('product.company_id = :companyId', { companyId });
+    }
+    const outOfStockProducts = await outOfStockQb
       .orderBy('product.updated_at', 'DESC')
       .getMany();
 
-    const lowStockProducts = await this.productRepository
+    const lowStockQb = this.productRepository
       .createQueryBuilder('product')
       .where('product.stock > 0')
-      .andWhere('product.stock < product.min_stock')
+      .andWhere('product.stock < product.min_stock');
+    if (companyId) {
+      lowStockQb.andWhere('product.company_id = :companyId', { companyId });
+    }
+    const lowStockProducts = await lowStockQb
       .orderBy('product.stock', 'ASC')
       .getMany();
 
-    const expiringEntries = await this.stockEntryRepository
+    const expiringQb = this.stockEntryRepository
       .createQueryBuilder('entry')
       .leftJoinAndSelect('entry.product', 'product')
       .where('entry.expiration_date IS NOT NULL')
       .andWhere('entry.expiration_date <= :limitDate', { limitDate: sevenDays })
-      .andWhere('entry.deleted_at IS NULL')
+      .andWhere('entry.deleted_at IS NULL');
+    if (companyId) {
+      expiringQb.andWhere('product.company_id = :companyId', { companyId });
+    }
+    const expiringEntries = await expiringQb
       .orderBy('entry.expiration_date', 'ASC')
       .getMany();
 
-    const nearMinimumProducts = await this.productRepository
+    const nearMinQb = this.productRepository
       .createQueryBuilder('product')
       .where('product.stock >= product.min_stock')
-      .andWhere('product.stock <= product.min_stock + 1')
+      .andWhere('product.stock <= product.min_stock + 1');
+    if (companyId) {
+      nearMinQb.andWhere('product.company_id = :companyId', { companyId });
+    }
+    const nearMinimumProducts = await nearMinQb
       .orderBy('product.stock - product.min_stock', 'ASC')
       .getMany();
 
-    const overstockProducts = await this.productRepository
+    const overstockQb = this.productRepository
       .createQueryBuilder('product')
-      .where('product.stock > product.max_stock')
+      .where('product.stock > product.max_stock');
+    if (companyId) {
+      overstockQb.andWhere('product.company_id = :companyId', { companyId });
+    }
+    const overstockProducts = await overstockQb
       .orderBy('product.stock - product.max_stock', 'DESC')
       .getMany();
 
-    const allProducts = await this.productRepository
-      .createQueryBuilder('product')
-      .orderBy('product.name', 'ASC')
-      .getMany();
+    const allQb = this.productRepository.createQueryBuilder('product');
+    if (companyId) {
+      allQb.where('product.company_id = :companyId', { companyId });
+    }
+    const allProducts = await allQb.orderBy('product.name', 'ASC').getMany();
 
     const assigned = new Set<number>();
 
