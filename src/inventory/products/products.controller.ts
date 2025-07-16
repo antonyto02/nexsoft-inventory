@@ -36,7 +36,7 @@ export class ProductsController {
 
   @Post()
   create(@Body() dto: CreateProductDto, @Req() req: Request) {
-    const companyId = (req as any).user?.company_id;
+    const companyId = (req as any).user?.companyId;
     console.log('company_id del usuario:', companyId);
     if (!companyId) {
       throw new UnauthorizedException('Falta company_id en el token');
@@ -53,7 +53,7 @@ export class ProductsController {
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    const companyId = (req as any).user?.company_id;
+    const companyId = (req as any).user?.companyId;
     console.log('company_id del usuario:', companyId);
     if (!companyId) {
       throw new UnauthorizedException('Falta company_id en el token');
@@ -71,7 +71,7 @@ export class ProductsController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
     const categoryId = category ? parseInt(category, 10) : undefined;
-    const companyId = (req as any).user?.company_id;
+    const companyId = (req as any).user?.companyId;
     console.log('company_id del usuario:', companyId);
     if (!companyId) {
       throw new UnauthorizedException('Falta company_id en el token');
@@ -95,7 +95,7 @@ export class ProductsController {
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
-    const companyId = (req as any).user?.company_id;
+    const companyId = (req as any).user?.companyId;
     console.log('company_id del usuario:', companyId);
     if (!companyId) {
       throw new UnauthorizedException('Falta company_id en el token');

@@ -60,7 +60,7 @@ describe('ProductsController', () => {
   it('search should call service with params', async () => {
     const svc = controller['productsService'];
     svc.searchByName = jest.fn().mockResolvedValue('data');
-    const req: any = { user: { company_id: 'c1' } };
+    const req: any = { user: { companyId: 'c1' } };
     const res = await controller.search('agua', '5', '10', req);
     expect(svc.searchByName).toHaveBeenCalledWith('c1', 'agua', 5, 10);
     expect(res).toBe('data');
