@@ -43,6 +43,9 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   image_url?: string;
 
+  @Column({ name: 'company_id' })
+  companyId: number;
+
   @CreateDateColumn()
   created_at: Date;
 
