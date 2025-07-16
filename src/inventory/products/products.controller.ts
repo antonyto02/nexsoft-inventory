@@ -31,8 +31,9 @@ export class ProductsController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  create(@Body() dto: CreateProductDto, @Req() req: Request) {
+    const companyId = (req as any).user.company_id;
+    return this.productsService.create(companyId, dto);
   }
 
   @Get()
@@ -67,6 +68,7 @@ export class ProductsController {
     @Query('name') name?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Req() req?: Request,
   ) {
     if (!name || name.length < 2) {
       throw new BadRequestException(
@@ -77,8 +79,15 @@ export class ProductsController {
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
 
+    const companyId = (req as any).user.company_id;
+
     try {
-      return await this.productsService.searchByName(name, limitNum, offsetNum);
+      return await this.productsService.searchByName(
+        companyId,
+        name,
+        limitNum,
+        offsetNum,
+      );
     } catch (err) {
       throw new InternalServerErrorException();
     }

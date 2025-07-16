@@ -62,7 +62,9 @@ describe('ProductsService', () => {
   });
 
   it('should throw error when name is missing', async () => {
-    await expect(service.searchByName(undefined as any, 20, 0)).rejects.toThrow();
+    await expect(
+      service.searchByName('c1', undefined as any, 20, 0),
+    ).rejects.toThrow();
   });
 
   it('searchByName should return mapped products', async () => {
@@ -91,7 +93,7 @@ describe('ProductsService', () => {
     repoMock.createQueryBuilder = jest.fn().mockReturnValue(qb);
     repoMock.query = jest.fn().mockResolvedValue([{ extname: 'unaccent' }]);
 
-    const result = await service.searchByName('agua', 20, 0);
+    const result = await service.searchByName('c1', 'agua', 20, 0);
     expect(result).toEqual({
       message: 'Búsqueda completada',
       total: 1,

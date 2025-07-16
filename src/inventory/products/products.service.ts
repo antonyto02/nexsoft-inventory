@@ -21,7 +21,7 @@ export class ProductsService {
     private readonly stockEntryRepository: Repository<StockEntry>,
   ) {}
 
-  async create(dto: CreateProductDto) {
+  async create(companyId: string, dto: CreateProductDto) {
     const allowedSensorTypes = ['manual', 'rfid', 'weight', 'camera'];
     if (!allowedSensorTypes.includes(dto.sensor_type)) {
       throw new BadRequestException('Invalid sensor type');
@@ -42,6 +42,7 @@ export class ProductsService {
     }
 
     const product = this.productRepository.create({
+      company_id: companyId,
       name: dto.name,
       brand: dto.brand,
       description: dto.description,
@@ -217,7 +218,12 @@ export class ProductsService {
     }
   }
 
-  async searchByName(name?: string, limit = 20, offset = 0) {
+  async searchByName(
+    companyId: string,
+    name?: string,
+    limit = 20,
+    offset = 0,
+  ) {
     if (!name || name.length < 2) {
       throw new BadRequestException(
         "El parámetro 'name' es obligatorio y debe tener al menos 2 caracteres",
@@ -230,7 +236,8 @@ export class ProductsService {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
       .where('product.is_active = true')
-      .andWhere('product.deleted_at IS NULL');
+      .andWhere('product.deleted_at IS NULL')
+      .andWhere('product.company_id = :companyId', { companyId });
 
     const searchTerm = `%${name}%`;
 
