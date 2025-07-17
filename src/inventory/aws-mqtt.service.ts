@@ -18,10 +18,18 @@ dotenv.config();
 export class AwsMqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
 
-  private lastWeight: number | null = null;
-  private stableWeight: number | null = null;
-  private weightStableCount = 0;
-  private waitingForWeight = false;
+  private weightState: Record<
+    'weight1' | 'weight2',
+    {
+      lastWeight: number | null;
+      stableWeight: number | null;
+      weightStableCount: number;
+      waiting: boolean;
+    }
+  > = {
+    weight1: { lastWeight: null, stableWeight: null, weightStableCount: 0, waiting: false },
+    weight2: { lastWeight: null, stableWeight: null, weightStableCount: 0, waiting: false },
+  };
 
   constructor(
     @InjectRepository(StockEntry)
@@ -117,7 +125,9 @@ export class AwsMqttService implements OnModuleInit {
         } else if (topic === 'nexsoft/inventory/camera') {
           await this.processCamera(parsed);
         } else if (topic === 'nexsoft/inventory/weight1') {
-          await this.processWeight(parsed);
+          await this.processWeight(parsed, 'weight1');
+        } else if (topic === 'nexsoft/inventory/weight2') {
+          await this.processWeight(parsed, 'weight2');
         }
       } catch (err) {
         console.error('[MQTT] ❌ Error procesando mensaje:', err);
@@ -286,40 +296,42 @@ export class AwsMqttService implements OnModuleInit {
     this.rfidGateway.emitProductUpdated(payload);
   }
 
-  private async processWeight(parsed: any) {
-    console.log('[WEIGHT1] Datos recibidos:', parsed);
+  private async processWeight(parsed: any, sensor: 'weight1' | 'weight2') {
+    console.log(`[${sensor.toUpperCase()}] Datos recibidos:`, parsed);
 
+    const state = this.weightState[sensor];
     const value = Number(parsed?.value);
     if (isNaN(value)) return;
 
-    if (this.lastWeight === null) {
-      this.lastWeight = value;
-      this.stableWeight = value;
+    if (state.lastWeight === null) {
+      state.lastWeight = value;
+      state.stableWeight = value;
       return;
     }
 
-    const diff = Math.abs(value - this.lastWeight);
+    const diff = Math.abs(value - state.lastWeight);
 
-    if (!this.waitingForWeight) {
+    if (!state.waiting) {
       if (diff > 10) {
-        this.waitingForWeight = true;
-        this.weightStableCount = 0;
+        state.waiting = true;
+        state.weightStableCount = 0;
       }
     } else {
       if (diff <= 10) {
-        this.weightStableCount++;
-        if (this.weightStableCount >= 5) {
-          if (this.stableWeight !== null && this.stableWeight !== value) {
-            const prevQuantity = this.stableWeight;
+        state.weightStableCount++;
+        if (state.weightStableCount >= 5) {
+          if (state.stableWeight !== null && state.stableWeight !== value) {
+            const prevQuantity = state.stableWeight;
             const finalQuantity = value;
-            const product = await this.productRepository.findOne({ where: { id: 1000 } });
+            const productId = sensor === 'weight1' ? 1000 : 1001;
+            const product = await this.productRepository.findOne({ where: { id: productId } });
             const typeId = finalQuantity > prevQuantity ? 1 : 2;
             const movementType = await this.movementTypeRepository.findOne({ where: { id: typeId } });
             if (product && movementType) {
               const movement = this.movementRepository.create({
                 product,
                 type: movementType,
-                quantity: Math.abs(finalQuantity - prevQuantity),
+                quantity: Number(Math.abs(finalQuantity - prevQuantity).toFixed(2)),
                 previous_quantity: prevQuantity,
                 final_quantity: finalQuantity,
                 movement_date: getMexicoCityISO(),
@@ -367,15 +379,15 @@ export class AwsMqttService implements OnModuleInit {
             }
           }
 
-          this.stableWeight = value;
-          this.waitingForWeight = false;
-          this.weightStableCount = 0;
+          state.stableWeight = value;
+          state.waiting = false;
+          state.weightStableCount = 0;
         }
       } else {
-        this.weightStableCount = 0;
+        state.weightStableCount = 0;
       }
     }
 
-    this.lastWeight = value;
+    state.lastWeight = value;
   }
 }
