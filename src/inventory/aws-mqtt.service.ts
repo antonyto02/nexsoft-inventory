@@ -18,6 +18,19 @@ dotenv.config();
 export class AwsMqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
 
+  private weightState: Record<
+    'weight1' | 'weight2',
+    {
+      lastWeight: number | null;
+      stableWeight: number | null;
+      weightStableCount: number;
+      waiting: boolean;
+    }
+  > = {
+    weight1: { lastWeight: null, stableWeight: null, weightStableCount: 0, waiting: false },
+    weight2: { lastWeight: null, stableWeight: null, weightStableCount: 0, waiting: false },
+  };
+
   constructor(
     @InjectRepository(StockEntry)
     private readonly stockEntryRepository: Repository<StockEntry>,
@@ -111,6 +124,10 @@ export class AwsMqttService implements OnModuleInit {
           await this.processRfid(parsed);
         } else if (topic === 'nexsoft/inventory/camera') {
           await this.processCamera(parsed);
+        } else if (topic === 'nexsoft/inventory/weight1') {
+          await this.processWeight(parsed, 'weight1');
+        } else if (topic === 'nexsoft/inventory/weight2') {
+          await this.processWeight(parsed, 'weight2');
         }
       } catch (err) {
         console.error('[MQTT] ❌ Error procesando mensaje:', err);
@@ -277,5 +294,100 @@ export class AwsMqttService implements OnModuleInit {
 
     console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
     this.rfidGateway.emitProductUpdated(payload);
+  }
+
+  private async processWeight(parsed: any, sensor: 'weight1' | 'weight2') {
+    console.log(`[${sensor.toUpperCase()}] Datos recibidos:`, parsed);
+
+    const state = this.weightState[sensor];
+    const value = Number(parsed?.value);
+    if (isNaN(value)) return;
+
+    if (state.lastWeight === null) {
+      state.lastWeight = value;
+      state.stableWeight = value;
+      return;
+    }
+
+    const diff = Math.abs(value - state.lastWeight);
+
+    if (!state.waiting) {
+      if (diff > 10) {
+        state.waiting = true;
+        state.weightStableCount = 0;
+      }
+    } else {
+      if (diff <= 10) {
+        state.weightStableCount++;
+        if (state.weightStableCount >= 5) {
+          if (state.stableWeight !== null && state.stableWeight !== value) {
+            const prevQuantity = state.stableWeight;
+            const finalQuantity = value;
+            const productId = sensor === 'weight1' ? 1000 : 1001;
+            const product = await this.productRepository.findOne({ where: { id: productId } });
+            const typeId = finalQuantity > prevQuantity ? 1 : 2;
+            const movementType = await this.movementTypeRepository.findOne({ where: { id: typeId } });
+            if (product && movementType) {
+              const movement = this.movementRepository.create({
+                product,
+                type: movementType,
+                quantity: Number(Math.abs(finalQuantity - prevQuantity).toFixed(2)),
+                previous_quantity: prevQuantity,
+                final_quantity: finalQuantity,
+                movement_date: getMexicoCityISO(),
+              });
+              await this.movementRepository.save(movement);
+
+              product.stock = finalQuantity;
+              await this.productRepository.save(product);
+
+              const remaining = await this.stockEntryRepository.find({
+                where: { product: { id: product.id } },
+                order: { expiration_date: 'ASC' },
+              });
+              const nextEntry = remaining.find((e) => !!e.expiration_date);
+              const expirationDate = nextEntry?.expiration_date
+                ? new Date(nextEntry.expiration_date as unknown as string)
+                    .toISOString()
+                    .split('T')[0]
+                : undefined;
+
+              const payload = {
+                cardData: {
+                  id: product.id,
+                  stock_actual: Number(product.stock),
+                  ...(expirationDate && { expiration_date: expirationDate }),
+                },
+                detailData: {
+                  id: product.id,
+                  stock_actual: Number(product.stock),
+                  last_updated: product.updated_at,
+                },
+                movementData: {
+                  id: movement.id,
+                  ...formatMexicoCity(movement.movement_date),
+                  type: movement.type.name,
+                  stock_before: Number(movement.previous_quantity),
+                  quantity: Number(movement.quantity),
+                  stock_after: Number(movement.final_quantity),
+                  comment: movement.comment,
+                },
+              };
+
+              console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
+              this.rfidGateway.emitProductUpdated(payload);
+            }
+          }
+
+          state.stableWeight = value;
+          state.waiting = false;
+          state.weightStableCount = 0;
+        }
+      } else {
+        state.weightStableCount = 0;
+      }
+    }
+
+    state.lastWeight = value;
   }
 }
