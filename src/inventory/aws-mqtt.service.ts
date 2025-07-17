@@ -287,6 +287,8 @@ export class AwsMqttService implements OnModuleInit {
   }
 
   private async processWeight(parsed: any) {
+    console.log('[WEIGHT1] Datos recibidos:', parsed);
+
     const value = Number(parsed?.value);
     if (isNaN(value)) return;
 
