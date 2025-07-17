@@ -18,6 +18,11 @@ dotenv.config();
 export class AwsMqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
 
+  private lastWeight: number | null = null;
+  private stableWeight: number | null = null;
+  private weightStableCount = 0;
+  private waitingForWeight = false;
+
   constructor(
     @InjectRepository(StockEntry)
     private readonly stockEntryRepository: Repository<StockEntry>,
@@ -111,6 +116,8 @@ export class AwsMqttService implements OnModuleInit {
           await this.processRfid(parsed);
         } else if (topic === 'nexsoft/inventory/camera') {
           await this.processCamera(parsed);
+        } else if (topic === 'nexsoft/inventory/weight1') {
+          await this.processWeight(parsed);
         }
       } catch (err) {
         console.error('[MQTT] ❌ Error procesando mensaje:', err);
@@ -277,5 +284,96 @@ export class AwsMqttService implements OnModuleInit {
 
     console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
     this.rfidGateway.emitProductUpdated(payload);
+  }
+
+  private async processWeight(parsed: any) {
+    const value = Number(parsed?.value);
+    if (isNaN(value)) return;
+
+    if (this.lastWeight === null) {
+      this.lastWeight = value;
+      this.stableWeight = value;
+      return;
+    }
+
+    const diff = Math.abs(value - this.lastWeight);
+
+    if (!this.waitingForWeight) {
+      if (diff > 10) {
+        this.waitingForWeight = true;
+        this.weightStableCount = 0;
+      }
+    } else {
+      if (diff <= 10) {
+        this.weightStableCount++;
+        if (this.weightStableCount >= 5) {
+          if (this.stableWeight !== null && this.stableWeight !== value) {
+            const prevQuantity = this.stableWeight;
+            const finalQuantity = value;
+            const product = await this.productRepository.findOne({ where: { id: 1000 } });
+            const typeId = finalQuantity > prevQuantity ? 1 : 2;
+            const movementType = await this.movementTypeRepository.findOne({ where: { id: typeId } });
+            if (product && movementType) {
+              const movement = this.movementRepository.create({
+                product,
+                type: movementType,
+                quantity: Math.abs(finalQuantity - prevQuantity),
+                previous_quantity: prevQuantity,
+                final_quantity: finalQuantity,
+                movement_date: getMexicoCityISO(),
+              });
+              await this.movementRepository.save(movement);
+
+              product.stock = finalQuantity;
+              await this.productRepository.save(product);
+
+              const remaining = await this.stockEntryRepository.find({
+                where: { product: { id: product.id } },
+                order: { expiration_date: 'ASC' },
+              });
+              const nextEntry = remaining.find((e) => !!e.expiration_date);
+              const expirationDate = nextEntry?.expiration_date
+                ? new Date(nextEntry.expiration_date as unknown as string)
+                    .toISOString()
+                    .split('T')[0]
+                : undefined;
+
+              const payload = {
+                cardData: {
+                  id: product.id,
+                  stock_actual: Number(product.stock),
+                  ...(expirationDate && { expiration_date: expirationDate }),
+                },
+                detailData: {
+                  id: product.id,
+                  stock_actual: Number(product.stock),
+                  last_updated: product.updated_at,
+                },
+                movementData: {
+                  id: movement.id,
+                  ...formatMexicoCity(movement.movement_date),
+                  type: movement.type.name,
+                  stock_before: Number(movement.previous_quantity),
+                  quantity: Number(movement.quantity),
+                  stock_after: Number(movement.final_quantity),
+                  comment: movement.comment,
+                },
+              };
+
+              console.log('✅ Emitiendo evento WebSocket', JSON.stringify(payload, null, 2));
+              this.rfidGateway.emitProductUpdated(payload);
+            }
+          }
+
+          this.stableWeight = value;
+          this.waitingForWeight = false;
+          this.weightStableCount = 0;
+        }
+      } else {
+        this.weightStableCount = 0;
+      }
+    }
+
+    this.lastWeight = value;
   }
 }
