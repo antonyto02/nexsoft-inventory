@@ -80,13 +80,14 @@ export class InventoryController {
     });
 
     const aiJson = await openAiRes.json();
-    console.log('openai json:', aiJson);
-
     const content = aiJson?.choices?.[0]?.message?.content;
+    console.log('Respuesta GPT:', content);
     let parsed: any = {};
     try {
       parsed = content ? JSON.parse(content) : {};
-    } catch {
+      console.log('JSON generado por GPT:', parsed);
+    } catch (err) {
+      console.error('Error al parsear JSON:', err);
       parsed = {};
     }
 
