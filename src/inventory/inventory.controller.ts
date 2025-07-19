@@ -103,7 +103,9 @@ Si no puedes inferir claramente todos (tipo, cantidad y nota), responde {}.
 ---
 
 🔸 Regla general:
-- Si la frase **no tiene sentido** para un sistema de inventario (ej. “tengo hambre”, “la carne estaba rica”), responde {}.`;
+- Si la frase **no tiene sentido** para un sistema de inventario (ej. “tengo hambre”, “la carne estaba rica”), responde {}.
+
+El campo `productId` será proporcionado por el backend. No lo cambies ni lo infieras. Usa exactamente el mismo valor que te proporcionen.`;
 
     const openAiRes = await fetch(
       'https://api.openai.com/v1/chat/completions',
@@ -146,16 +148,21 @@ Si no puedes inferir claramente todos (tipo, cantidad y nota), responde {}.
     }
 
     if (parsed.accion === 'editar' && parsed.patch) {
-      await this.productsService.update(String(body.productId), parsed.patch);
-      return { message: 'Producto actualizado correctamente' };
+      const result = await this.productsService.update(
+        String(body.productId),
+        parsed.patch,
+      );
+      console.log('Resultado PATCH producto:', result);
+      return result;
     }
 
     if (parsed.accion === 'movimiento' && parsed.movement) {
-      await this.movementsService.createManual(
+      const result = await this.movementsService.createManual(
         String(body.productId),
         parsed.movement,
       );
-      return { message: 'Movimiento registrado correctamente' };
+      console.log('Resultado POST movimiento:', result);
+      return result;
     }
 
     return { message: 'No se pudo interpretar la acción de la voz' };
