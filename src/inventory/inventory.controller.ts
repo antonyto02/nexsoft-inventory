@@ -56,7 +56,7 @@ export class InventoryController {
   @Post('voice-command')
   voiceCommand(@Body('command') command: string) {
     console.log('voice-command:', command);
-    if (command === 'Elotes') {
+    if (command === 'elotes') {
       const payload = {
         onPins: [],
         offPins: [12, 13, 14, 17],
