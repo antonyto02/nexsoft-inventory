@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   BadRequestException,
   UnauthorizedException,
   Req,
@@ -44,5 +45,10 @@ export class InventoryController {
     return {
       entry_mode: this.rfidService.getEntryMode(),
     };
+  }
+
+  @Post('voice-command')
+  handleVoiceCommand(@Body('command') command: string) {
+    console.log(command);
   }
 }
