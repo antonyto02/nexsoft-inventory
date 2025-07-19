@@ -60,7 +60,7 @@ export class InventoryController {
       throw new BadRequestException('OpenAI API key not configured');
     }
 
-    const prompt = `Eres un asistente de inventario que interpreta frases habladas por el usuario y las convierte en acciones del sistema. Tu objetivo es transformar cada frase en un JSON válido para registrar un movimiento o editar un producto.
+const prompt = `Eres un asistente de inventario que interpreta frases habladas por el usuario y las convierte en acciones del sistema. Tu objetivo es transformar cada frase en un JSON válido para registrar un movimiento o editar un producto.
 
 Responde **únicamente** con un objeto JSON, sin explicaciones ni texto adicional. Si no puedes interpretar la frase, responde con un JSON vacío: {}.
 
@@ -97,15 +97,26 @@ Responde **únicamente** con un objeto JSON, sin explicaciones ni texto adiciona
   }
 }
 
-📌 **Los tres campos de \`movement\` son obligatorios**.
-Si no puedes inferir claramente todos (tipo, cantidad y nota), responde {}.
+📘 Reglas para el campo \`type\`:
+- Usa \`1\` si el movimiento es una **Alta** (productos que entran al inventario).
+- Usa \`2\` si el movimiento es una **Baja** (productos que salen del inventario).
+- Usa \`3\` si es un **Ajuste alta** (corrección de stock que incrementa inventario).
+- Usa \`4\` si es un **Ajuste baja** (corrección de stock que reduce inventario).
+
+📌 Los tres campos de \`movement\` son obligatorios:
+- \`type\`: tipo de movimiento (ver reglas arriba)
+- \`quantity\`: número de unidades
+- \`note\`: razón del movimiento (por ejemplo: "por vencimiento", "por error de conteo", etc.)
+
+Si no puedes inferir claramente los tres campos, responde {}.
 
 ---
 
 🔸 Regla general:
-- Si la frase **no tiene sentido** para un sistema de inventario (ej. “tengo hambre”, “la carne estaba rica”), responde {}.
+- Si la frase **no tiene sentido** para un sistema de inventario (ej. “tengo hambre”, “la carne estaba rica”), responde {}.`;
 
-El campo `productId` será proporcionado por el backend. No lo cambies ni lo infieras. Usa exactamente el mismo valor que te proporcionen.`;
+
+
 
     const openAiRes = await fetch(
       'https://api.openai.com/v1/chat/completions',
