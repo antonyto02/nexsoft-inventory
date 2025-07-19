@@ -9,7 +9,7 @@ async function bootstrap() {
       'http://localhost:5173', 
       'http://127.0.0.1:5173',
       'https://nexusutd.online',
-      'https://app.nexusutd.online',
+      'https://192.168.1.105:5173',
     ],
     credentials: true, // permite enviar cookies o tokens en headers
   })
