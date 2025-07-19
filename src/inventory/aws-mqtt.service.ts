@@ -47,6 +47,14 @@ export class AwsMqttService implements OnModuleInit {
     this.connectToMqttBroker();
   }
 
+  publish(topic: string, message: any) {
+    if (!this.client || !this.client.connected) {
+      console.warn('[MQTT] Cliente no conectado');
+      return;
+    }
+    this.client.publish(topic, JSON.stringify(message));
+  }
+
   private connectToMqttBroker() {
     const mode = process.env.MQTT_MODE || 'local';
 

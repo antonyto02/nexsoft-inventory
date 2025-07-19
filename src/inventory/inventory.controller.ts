@@ -11,12 +11,14 @@ import {
 import { Request } from 'express';
 import { InventoryService } from './inventory.service';
 import { RfidService } from './rfid/rfid.service';
+import { AwsMqttService } from './aws-mqtt.service';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(
     private readonly inventoryService: InventoryService,
     private readonly rfidService: RfidService,
+    private readonly awsMqttService: AwsMqttService,
   ) {}
 
   @Get('home')
@@ -49,6 +51,14 @@ export class InventoryController {
 
   @Post('voice-command')
   handleVoiceCommand(@Body('command') command: string) {
-    console.log(command);
+    if (command?.trim().toLowerCase() === 'elotes') {
+      this.awsMqttService.publish('nexsoft/inventory/leds', {
+        onPins: [],
+        offPins: [12, 13, 14, 17],
+        parpadeo: 17,
+      });
+      return { message: 'Comando procesado' };
+    }
+    return { message: 'Comando no reconocido' };
   }
 }
