@@ -13,6 +13,7 @@ import { InventoryService } from './inventory.service';
 import { RfidService } from './rfid/rfid.service';
 import { ProductsService } from './products/products.service';
 import { MovementsService } from './movements/movements.service';
+import { AwsMqttService } from './aws-mqtt.service';
 
 @Controller('inventory')
 export class InventoryController {
@@ -21,6 +22,7 @@ export class InventoryController {
     private readonly rfidService: RfidService,
     private readonly productsService: ProductsService,
     private readonly movementsService: MovementsService,
+    private readonly awsMqttService: AwsMqttService,
   ) {}
 
   @Get('home')
@@ -49,6 +51,20 @@ export class InventoryController {
     return {
       entry_mode: this.rfidService.getEntryMode(),
     };
+  }
+
+  @Post('voice-command')
+  voiceCommand(@Body('command') command: string) {
+    console.log('voice-command:', command);
+    if (command === 'elotes') {
+      const payload = {
+        onPins: [],
+        offPins: [12, 13, 14, 17],
+        parpadeo: 17,
+      };
+      this.awsMqttService.publish('nexsoft/inventory/leds', payload);
+    }
+    return { message: 'Command received' };
   }
 
   @Post('voice-to-action')
