@@ -120,6 +120,11 @@ export class ProductsController {
     return this.s3Service.generateSignedUrl(type, ext);
   }
 
+  @Get('name/:name')
+  getByName(@Param('name') name: string) {
+    return this.productsService.findByName(name);
+  }
+
 
 
   @Get(':id')
