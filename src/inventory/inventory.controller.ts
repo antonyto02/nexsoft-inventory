@@ -56,14 +56,30 @@ export class InventoryController {
   @Post('voice-command')
   voiceCommand(@Body('command') command: string) {
     console.log('voice-command:', command);
-    if (command === 'elotes') {
-      const payload = {
-        onPins: [],
-        offPins: [12, 13, 14, 17],
-        parpadeo: 17,
-      };
+    const normalized = command?.toLowerCase().trim();
+
+    const basePayload = {
+      onPins: [],
+      offPins: [12, 13, 14, 17],
+    };
+
+    let parpadeo: number | null = null;
+
+    if (normalized === 'elotes') {
+      parpadeo = 17;
+    } else if (normalized === 'aceite') {
+      parpadeo = 13;
+    } else if (normalized === 'frijol' || normalized === 'avena') {
+      parpadeo = 12;
+    } else if (normalized === 'gelatina' || normalized === 'gelatinas') {
+      parpadeo = 14;
+    }
+
+    if (parpadeo !== null) {
+      const payload = { ...basePayload, parpadeo };
       this.awsMqttService.publish('nexsoft/inventory/leds', payload);
     }
+
     return { message: 'Command received' };
   }
 
@@ -125,6 +141,7 @@ Responde **únicamente** con un objeto JSON, sin explicaciones ni texto adiciona
 - \`note\`: razón del movimiento (por ejemplo: "por vencimiento", "por error de conteo", etc.)
 
 Si no puedes inferir claramente los tres campos, responde {}.
+Utiliza el formato camel case en todo, por ejemplo si el usuario dice camarones frescos, tu cambias a Camarones Frescos, lo mismo en todos los campos
 
 ---
 

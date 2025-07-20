@@ -242,6 +242,7 @@ export class ProductsService {
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.unit', 'unit')
       .where('product.is_active = true')
       .andWhere('product.deleted_at IS NULL');
     if (companyId) {
@@ -287,6 +288,57 @@ export class ProductsService {
     return response;
   }
 
+  async findByName(name: string) {
+    const trimmed = name?.trim();
+    if (!trimmed) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    const useUnaccent = await this.hasUnaccent();
+
+    let qb = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.unit', 'unit')
+      .where('product.is_active = true')
+      .andWhere('product.deleted_at IS NULL');
+
+    const searchTerm = `%${trimmed}%`;
+
+    if (useUnaccent) {
+      qb = qb.andWhere(
+        'unaccent(product.name) ILIKE unaccent(:name)',
+        { name: searchTerm },
+      );
+    } else {
+      qb = qb.andWhere('product.name ILIKE :name', { name: searchTerm });
+    }
+
+    const product = await qb.orderBy('product.id', 'ASC').getOne();
+
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    return {
+      message: 'Producto obtenido correctamente',
+      product: {
+        id: String(product.id),
+        name: product.name,
+        image_url: product.image_url,
+        description: product.description,
+        category: product.category?.name,
+        unit: product.unit?.name,
+        brand: product.brand,
+        stock_actual: Number(product.stock),
+        stock_minimum: Number(product.min_stock),
+        stock_maximum: Number(product.max_stock),
+        last_updated: product.updated_at.toISOString().split('.')[0],
+        sensor_type: product.sensor_type,
+      },
+    };
+  }
+
   async findById(id: string) {
     const numericId = parseInt(id, 10);
     if (isNaN(numericId)) {
@@ -295,7 +347,7 @@ export class ProductsService {
 
     const product = await this.productRepository.findOne({
       where: { id: numericId },
-      relations: ['category'],
+      relations: ['category', 'unit'],
     });
 
     if (!product) {
@@ -310,6 +362,7 @@ export class ProductsService {
         image_url: product.image_url,
         description: product.description,
         category: product.category?.name,
+        unit: product.unit?.name,
         brand: product.brand,
         stock_actual: Number(product.stock),
         stock_minimum: Number(product.min_stock),
