@@ -141,6 +141,7 @@ Responde **únicamente** con un objeto JSON, sin explicaciones ni texto adiciona
 - \`note\`: razón del movimiento (por ejemplo: "por vencimiento", "por error de conteo", etc.)
 
 Si no puedes inferir claramente los tres campos, responde {}.
+Utiliza el formato camel case en todo, por ejemplo si el usuario dice camarones frescos, tu cambias a Camarones Frescos, lo mismo en todos los campos
 
 ---
 
