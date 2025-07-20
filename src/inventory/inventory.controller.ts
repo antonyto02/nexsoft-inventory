@@ -56,14 +56,30 @@ export class InventoryController {
   @Post('voice-command')
   voiceCommand(@Body('command') command: string) {
     console.log('voice-command:', command);
-    if (command === 'elotes') {
-      const payload = {
-        onPins: [],
-        offPins: [12, 13, 14, 17],
-        parpadeo: 17,
-      };
+    const normalized = command?.toLowerCase().trim();
+
+    const basePayload = {
+      onPins: [],
+      offPins: [12, 13, 14, 17],
+    };
+
+    let parpadeo: number | null = null;
+
+    if (normalized === 'elotes') {
+      parpadeo = 17;
+    } else if (normalized === 'aceite') {
+      parpadeo = 13;
+    } else if (normalized === 'frijol' || normalized === 'avena') {
+      parpadeo = 12;
+    } else if (normalized === 'gelatina' || normalized === 'gelatinas') {
+      parpadeo = 14;
+    }
+
+    if (parpadeo !== null) {
+      const payload = { ...basePayload, parpadeo };
       this.awsMqttService.publish('nexsoft/inventory/leds', payload);
     }
+
     return { message: 'Command received' };
   }
 
