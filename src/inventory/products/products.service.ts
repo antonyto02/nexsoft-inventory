@@ -242,6 +242,7 @@ export class ProductsService {
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.unit', 'unit')
       .where('product.is_active = true')
       .andWhere('product.deleted_at IS NULL');
     if (companyId) {
@@ -298,6 +299,7 @@ export class ProductsService {
     let qb = this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.unit', 'unit')
       .where('product.is_active = true')
       .andWhere('product.deleted_at IS NULL');
 
@@ -326,6 +328,7 @@ export class ProductsService {
         image_url: product.image_url,
         description: product.description,
         category: product.category?.name,
+        unit: product.unit?.name,
         brand: product.brand,
         stock_actual: Number(product.stock),
         stock_minimum: Number(product.min_stock),
@@ -344,7 +347,7 @@ export class ProductsService {
 
     const product = await this.productRepository.findOne({
       where: { id: numericId },
-      relations: ['category'],
+      relations: ['category', 'unit'],
     });
 
     if (!product) {
@@ -359,6 +362,7 @@ export class ProductsService {
         image_url: product.image_url,
         description: product.description,
         category: product.category?.name,
+        unit: product.unit?.name,
         brand: product.brand,
         stock_actual: Number(product.stock),
         stock_minimum: Number(product.min_stock),

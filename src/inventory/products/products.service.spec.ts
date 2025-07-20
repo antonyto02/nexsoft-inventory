@@ -122,6 +122,7 @@ describe('ProductsService', () => {
       max_stock: 50,
       updated_at: new Date('2025-06-17T14:23:00Z'),
       category: { name: 'Lácteos' },
+      unit: { name: 'Litro' },
       sensor_type: 'rfid',
     };
     repoMock.findOne = jest.fn().mockResolvedValue(prod);
@@ -135,6 +136,7 @@ describe('ProductsService', () => {
         image_url: 'url',
         description: 'desc',
         category: 'Lácteos',
+        unit: 'Litro',
         brand: 'Lala',
         stock_actual: 20,
         stock_minimum: 5,
